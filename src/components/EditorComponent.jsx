@@ -1,33 +1,17 @@
+/* eslint-disable react/prop-types */
 // src/components/EditorComponent.jsx
-import React, { useRef } from "react";
-import { Box, Button, Center, Flex, Text } from "@chakra-ui/react";
+// import  { useRef } from "react";
+import {    Flex, Text } from "@chakra-ui/react";
 import Editor from "@monaco-editor/react";
-import useStore from "../store";
+import { useStore, useStoreActions } from "../editorStore";
 import Tabs from "./Tab";
-import { getLanguageFromFileExtension } from "../util/util";
 
-function EditorComponent({activefiles , updateFile}) {
-  const editorRef = useRef(null);
-  const {
-    currentFile,
-    content,
-    setCurrentFile,
-    setContent,
-    setLanguage,
-    language,
-    openFiles,
-    setOpenFiles,
-    setActiveFile,
-  } = useStore((state) => ({
-    currentFile: state.currentFile,
-    content: state.content,
-    setCurrentFile: state.setCurrentFile,
-    setContent: state.setContent,
-    setLanguage: state.setLanguage,
-    language: state.language,
-    setOpenFiles: state.setOpenFiles,
-    setActiveFile: state.setActiveFile,
-  }));
+import { useEditor } from "../Context/EditorContext";
+
+function EditorComponent() {
+  const { editorRef } = useEditor();
+  const {  files,editor } = useStore();
+  const {  setEditor } = useStoreActions();
 
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -105,80 +89,28 @@ function EditorComponent({activefiles , updateFile}) {
       noSyntaxValidation: false,
     });
   };
-
-  const openFile = async () => {
-    try {
-      const [fileHandle] = await window.showOpenFilePicker();
-      const file = await fileHandle.getFile();
-      const text = await file.text();
-      const language = getLanguageFromFileExtension(file.name);
-
-      setCurrentFile(fileHandle);
-      setContent(text);
-      setLanguage(language);
-      setActiveFile(fileHandle);
-
-      if (openFiles) {
-        const fileNames = openFiles.map((file) => file.name);
-        if (!fileNames.includes(fileHandle.name)) {
-          setOpenFiles([...openFiles, fileHandle]);
-        }
-      } else {
-        setOpenFiles([fileHandle]);
-      }
-      if (editorRef.current) {
-        editorRef.current.setValue(text);
-      }
-    } catch (error) {
-      console.error("Error opening file:", error);
-    }
-  };
-
-  const saveFile = async () => {
-    if (currentFile) {
-      const writable = await currentFile.createWritable();
-      await writable.write(editorRef.current.getValue());
-      await writable.close();
-    } else {
-      saveFileAs();
-    }
-  };
-
-  const saveFileAs = async () => {
-    try {
-      const newFileHandle = await window.showSaveFilePicker();
-      const writable = await newFileHandle.createWritable();
-      await writable.write(editorRef.current.getValue());
-      await writable.close();
-      setCurrentFile(newFileHandle);
-    } catch (error) {
-      console.error("Error saving file:", error);
-    }
-  };
-
   return (
-    <Flex direction="column" height="100vh">
+    <Flex direction="column" height="650px">
       <Flex bg="gray.800" color="white" padding={2}>
-        <Button onClick={openFile}>Open File</Button>
+        {/* <Button onClick={openFile}>Open File</Button>
         <Button onClick={saveFile}>Save</Button>
-        <Button onClick={saveFileAs}>Save As</Button>
+        <Button onClick={saveFileAs}>Save As</Button> */}
 
-        <Tabs updateFile={updateFile}  activefiles={activefiles} />
+        <Tabs/>
       </Flex>
-      {content ? (
+    {files.open.length > 0 && editor.content !== undefined && editor.content !== null ? (
         <Editor
-          height="90vh"
-          // theme="vs-dark"
-          language={language} // Use the language from the store
-          value={content}
+          height="650px"
+          language={editor.language}
+          value={editor.content}
           onMount={handleEditorDidMount}
-          onChange={(value) => setContent(value)}
+          onChange={(value) => setEditor.setContent(value)}
         />
       ) : (
         <Flex
           padding={4}
           color={"gray.600"}
-          height="100vh"
+          height=""
           fontSize={"xx-large"}
           alignItems={"center"}
           justifyContent={"center"}

@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 // src/components/LanguageDropdown.jsx
 import {
     Box,

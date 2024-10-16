@@ -1,3 +1,4 @@
+// src/editorStore.js
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 
@@ -29,6 +30,7 @@ const createStore = (set, get) => {
     editor: {
       language: "javascript",
       directoryHandle: null,
+      content: null,
     },
     actions: {
       setFiles: {
@@ -44,6 +46,7 @@ const createStore = (set, get) => {
       },
       setEditor: {
         setLanguage: createSetter('editor.language'),
+        setContent: createSetter('editor.content'),
         setDirectoryHandle: createSetter('editor.directoryHandle'),
       },
       resetState: () => set((state) => {
