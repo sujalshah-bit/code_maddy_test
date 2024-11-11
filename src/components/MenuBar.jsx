@@ -41,6 +41,7 @@ const MenuBar = () => {
   const saveFile = async () => {
     if (files.current) {
       const writable = await files.current.createWritable();
+      console.log(files.current)
       await writable.write(editorRef.current.getValue());
       await writable.close();
     } else {

@@ -46,6 +46,7 @@ function Tabs() {
 
     if (newOpenFiles.length === 0) {
       setFiles.setActive(null);
+      setFiles.setCurrent(null);
       setEditor.setContent("");
       setEditor.setLanguage("javascript");
     } else if (files.active?.name === fileHandle.name) {
@@ -58,6 +59,7 @@ function Tabs() {
     const file = await fileHandle.getFile();
     const text = await file.text();
     setFiles.setActive(fileHandle);
+    setFiles.setCurrent(fileHandle);
     setEditor.setContent(text);
     setEditor.setLanguage(getLanguageFromFileExtension(file.name));
   };
@@ -95,22 +97,33 @@ function Tabs() {
   };
 
   return (
-    <div className="flex items-center bg-gray-900 w-[calc(100vw-280px)] text-white h-12 overflow-hidden">
-      <div ref={tabsRef} className="flex-1 flex w-full overflow-x-hidden">
+    <div className="flex items-center w-full bg-gray-900 text-white h-12 overflow-hidden border-l border-t border-gray-800">
+      <div 
+        ref={tabsRef} 
+        className="flex-1 flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
+      >
         {files.open?.map((fileHandle) => (
           <button
             key={fileHandle.name}
             onClick={() => handleTabClick(fileHandle)}
-            className={`flex items-center min-w-max px-4 py-2 text-sm border-r border-gray-700 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 ${
-              files.active?.name === fileHandle.name ? 'bg-gray-700' : ''
-            }`}
+            className={`
+              flex items-center min-w-max px-4 py-2 text-sm border-r border-gray-700 
+              transition-colors duration-150
+              hover:bg-gray-800
+              focus:outline-none focus:bg-gray-700
+              ${files.active?.name === fileHandle.name 
+                ? 'bg-gray-800 text-white border-b-2 border-b-blue-500' 
+                : 'text-gray-400'
+              }
+            `}
           >
             {getFileIcon(fileHandle.name)}
-            <span className="ml-2">{fileHandle.name}</span>
+            <span className="ml-2 max-w-[150px] truncate">{fileHandle.name}</span>
             <button
               onClick={(e) => handleCancelClick(fileHandle, e)}
-              className="ml-2 p-1 rounded-full hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="ml-2 p-1  rounded-sm  hover:bg-gray-600 focus:outline-none focus:bg-gray-600"
             >
+
               <X className="w-3 h-3" />
             </button>
           </button>

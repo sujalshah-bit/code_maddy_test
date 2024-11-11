@@ -1,5 +1,5 @@
 // src/sidebar.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useStore, useStoreActions } from "./editorStore";
 import { getLanguageFromFileExtension } from "./util/util";
 import {
@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 function Sidebar() {
-  const { files, folders, editor } = useStore();
+  const { files, folders, editor, ui } = useStore();
   const { setFiles, setEditor, setFolders } = useStoreActions();
   const [parentFolder, setParentFolder] = useState(null);
   const [rootHandler, setRootHandler] = useState(null);
@@ -28,6 +28,11 @@ function Sidebar() {
     y: 0,
     node: null, // to track which node was right-clicked
   });
+  const [isResizing, setIsResizing] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(256); // 16rem = 256px
+  const sidebarRef = useRef(null);
+  const MIN_WIDTH = 160; // 10rem
+  const MAX_WIDTH = 480; // 30rem
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop()?.toLowerCase();
@@ -64,7 +69,7 @@ function Sidebar() {
     }
   };
 
-  const addNewFile = async () => {
+  const addNewFile = async (isRootNode) => {
     if (!parentFolder && !rootHandler) {
       console.error("Parent folder is not selected.");
       return;
@@ -95,12 +100,12 @@ function Sidebar() {
       console.log(newFileHandle);
       const addNewFileObj = {
         file: fileName,
-        node: parentFolder,
+        parentNode: parentFolder|| rootHandler,
         action: "ADD_NEW_FILE",
         fileHandle: newFileHandle,
       };
       console.log(addNewFileObj);
-      updateTree(addNewFileObj);
+      updateTree(addNewFileObj,isRootNode);
       await handleFileClick(newFileHandle);
       console.log("New file created:", fileName);
     } catch (error) {
@@ -109,7 +114,7 @@ function Sidebar() {
     }
   };
 
-  const addNewFolder = async () => {
+  const addNewFolder = async (isRootNode) => {
     if (!parentFolder && !rootHandler) {
       console.error("Parent folder is not selected.");
       return;
@@ -129,45 +134,49 @@ function Sidebar() {
         children: [],
       };
 
-      // Update the file tree
-      const updateTreeWithNewFolder = (tree) => {
-        return tree.map((node) => {
-          if (node === parentFolder) {
-            return { ...node, children: [...(node.children || []), newFolder] };
-          } else if (node.children) {
-            return {
-              ...node,
-              children: updateTreeWithNewFolder(node.children),
-            };
-          }
-          return node;
-        });
-      };
+      updateTree({
+        parentNode: parentFolder|| rootHandler,
+        action: "ADD_NEW_FOLDER",
+        newFolder,
+      },isRootNode);
 
-      const updatedTree = updateTreeWithNewFolder(files.tree);
-      setFiles.setTree(updatedTree);
-
-      // Expand the parent folder
-      // toggleFolder(parentFolder)
-      console.log("New file created:", newFolder);
-      // setFolders.setExpanded({ ...folders.expanded, [parentFolder.name]: true });
+      console.log("New Folder created:", newFolder);
     } catch (error) {
       console.error("Error creating new folder:", error);
       alert("Failed to create new folder. Please try again.");
     }
   };
 
-  const updateTree = ({ file, node, action, fileHandle }) => {
+  const updateTree = ({ file, parentNode, action, fileHandle, newFolder },isRootNode) => {
     if (!files.tree.length) {
       console.error("No directory loaded");
       return;
     }
     let updateTreeWithChildren;
-    if (action === "rename") {
+    if (action === "ADD_NEW_FILE") {
+      if (!fileHandle) return;
       updateTreeWithChildren = (tree) => {
+        if(isRootNode){
+          const currentChildren = tree;
+          const files = currentChildren.filter((child) => child.kind === "file")
+          const directories = currentChildren.filter((child) => child.kind === "directory")
+          files.push({ kind: "file", name: file, handle: fileHandle });
+          console.log(files);
+          files.sort((a, b) => a.name.localeCompare(b.name))
+          return [...directories, ...files];
+        }
         return tree.map((n) => {
-          if (n.name === node.name && n.kind === "file") {
-            return { ...n, name: file }; // Update the current node with new children
+          if (n.name === parentNode.name && n.kind === "directory") {
+            const currentChildren = [...n.children];
+            const files = currentChildren.filter((child) => child.kind === "file")
+            const directories = currentChildren.filter((child) => child.kind === "directory")
+
+            files.push({ kind: "file", name: file, handle: fileHandle });
+            files.sort((a, b) => a.name.localeCompare(b.name))
+            return {
+              ...n,
+              children: [...directories, ...files],
+            };
           } else if (n.children) {
             // If this is a directory, recursively check its children
             return { ...n, children: updateTreeWithChildren(n.children) };
@@ -175,22 +184,38 @@ function Sidebar() {
           return n; // Return the node as-is if it's not the one to update
         });
       };
-    } else {
-      if (!fileHandle) return;
+    }else{
+      // Update the file tree
       updateTreeWithChildren = (tree) => {
-        console.log({ file, node });
-        return tree.map((n) => {
-          if (n.name === node.name && n.kind === "directory") {
-            console.log(n);
-            return { ...n, children: [...n.children, fileHandle] };
-          } else if (n.children) {
-            // If this is a directory, recursively check its children
-            return { ...n, children: updateTreeWithChildren(n.children) };
+        if(isRootNode){
+          const currentChildren = tree;
+          const files = currentChildren.filter((child) => child.kind === "file")
+          const directories = currentChildren.filter((child) => child.kind === "directory")
+          directories.push(newFolder);
+          directories.sort((a, b) => a.name.localeCompare(b.name))
+          return [...directories, ...files];
+        }
+        return tree.map((node) => {
+          if (node === parentNode) {
+            const currentChildren = [...(node.children || [])];
+            const files = currentChildren.filter((child) => child.kind === "file")
+            const directories = currentChildren.filter((child) => child.kind === "directory")
+
+            directories.push(newFolder);
+            directories.sort((a, b) => a.name.localeCompare(b.name))
+
+            return { ...node, children: [...directories, ...files] };
+          } else if (node.children) {
+            return {
+              ...node,
+              children: updateTreeWithChildren(node.children),
+            };
           }
-          return n; // Return the node as-is if it's not the one to update
+          return node;
         });
       };
     }
+    console.log(files.tree);
 
     const updateTreeStructure = updateTreeWithChildren(files.tree);
     setFiles.setTree(updateTreeStructure);
@@ -320,49 +345,15 @@ function Sidebar() {
     }
   };
 
-  const renameFile = async (node) => {
-    const renameFile = prompt("Enter the rename file name:");
-    if (!renameFile) {
-      console.error("No file name provided.");
-      return;
-    }
-    if (renameFile.trim() === node.name) {
-      console.log("File is already of same name");
-      return;
-    }
-
-    try {
-      // Create the new file
-      await node.handle.move(renameFile);
-      const updateRename = {
-        file: renameFile,
-        node,
-        action: "rename",
-      };
-      updateTree(updateRename);
-
-      // await refreshExplorer();
-
-      console.log("rename file created:", renameFile);
-    } catch (error) {
-      console.error("Error creating new file:", error);
-      alert("Failed to create new file. Please try again.");
-    }
-  };
-
-  const handleContextMenuAction = async (action) => {
+  const handleContextMenuAction = async (action, isRootNode) => {
     switch (action) {
       case "newFile":
         // Add logic to create a new file inside the right-clicked folder
-        await addNewFile();
+        await addNewFile(isRootNode);
         break;
       case "newFolder":
         // Add logic to create a new folder inside the right-clicked folder
-        await addNewFolder();
-        break;
-      case "rename":
-        // Add logic to rename the file/folder
-        await renameFile(contextMenu.node);
+        await addNewFolder(isRootNode);
         break;
       default:
         break;
@@ -370,7 +361,7 @@ function Sidebar() {
     setContextMenu({ visible: false, x: 0, y: 0, node: null }); // Close the context menu
   };
 
-  const ContextMenu = ({ x, y, onAction }) => (
+  const ContextMenu = ({ x, y, onAction, isRootNode }) => (
     <div
       style={{ top: y, left: x, position: "absolute", zIndex: 1000 }}
       className="bg-gray-800 text-gray-300 shadow-lg rounded-md py-1 w-48"
@@ -378,13 +369,13 @@ function Sidebar() {
       {contextMenu.node.kind === "file" ? null : (
         <>
           <div
-            onClick={() => onAction("newFile")}
+            onClick={() => onAction("newFile", isRootNode)}
             className="px-4 py-2 hover:bg-gray-700"
           >
             New File
           </div>
           <div
-            onClick={() => onAction("newFolder")}
+            onClick={() => onAction("newFolder", isRootNode)}
             className="px-4 py-2 hover:bg-gray-700"
           >
             New Folder
@@ -404,62 +395,80 @@ function Sidebar() {
 
   const renderTree = (nodes, level = 0) => (
     <ul>
-      {nodes.map((node, index) => (
-        <li
-          key={index}
-          className={`my-2 ${node.kind === "directory" ? "ml-4" : "ml-9"}`}
-        >
-          <div
-            className="flex items-center space-x-1 cursor-pointer"
-            onClick={(e) => {
-              e.preventDefault();
-              if (node.kind === "directory") {
+      {nodes.map((node, index) => {
+        const isCurrentFile = node.kind === "file" && files.current?.name === node.name;
+        
+        return (
+          <li
+            key={index}
+            className={`my-2 ${node.kind === "directory" ? "ml-4" : "ml-9"}`}
+          >
+            <div
+              data-file-name={node.name}
+              className={`flex items-center space-x-1 cursor-pointer group
+                ${isCurrentFile && files.open.length > 1 ? 'bg-blue-500/20 text-blue-400' : 'hover:bg-gray-800'}
+                transition-colors duration-150 ease-in-out`}
+              onClick={(e) => {
+                e.preventDefault();
+                if (node.kind === "directory") {
+                  setParentFolder(node);
+                  setRootHandler(null);
+                  toggleFolder(node);
+                } else {
+                  handleFileClick(node.handle);
+                }
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault();
                 setParentFolder(node);
                 setRootHandler(null);
-                toggleFolder(node);
-              } else {
-                handleFileClick(node.handle);
-              }
-            }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setParentFolder(node);
-              setRootHandler(null);
-              setContextMenu({
-                visible: true,
-                x: e.pageX,
-                y: e.pageY,
-                node: node, // Keep track of the clicked node
-              });
-            }}
-          >
-            {node.kind === "directory" ? (
-              <>
-                {folders.expanded[node.name] ? (
-                  <>
-                    <ChevronDown className="w-4 h-4 text-gray-500" />
-                    <FolderOpen className="w-4 h-4 text-blue-400" />
-                  </>
-                ) : (
-                  <>
-                    <ChevronRight className="w-4 h-4 text-gray-500" />
-                    <Folder className="w-4 h-4 text-blue-400" />
-                  </>
-                )}
-              </>
-            ) : (
-              getFileIcon(node.name)
-            )}
-            <span className="text-sm text-gray-300 truncate">{node.name}</span>
-          </div>
-          {node.kind === "directory" &&
-            node.children &&
-            folders.expanded[node.name] &&
-            renderTree(node.children, level + 1)}
-        </li>
-      ))}
+                setContextMenu({
+                  visible: true,
+                  x: e.pageX,
+                  y: e.pageY,
+                  node: node,
+                  isRootNode: false,
+                });
+              }}
+            >
+              {node.kind === "directory" ? (
+                <>
+                  {folders.expanded[node.name] ? (
+                    <>
+                      <ChevronDown className="w-4 h-4 text-gray-500 group-hover:text-gray-400" />
+                      <FolderOpen className="w-4 h-4 text-blue-400 group-hover:text-blue-300" />
+                    </>
+                  ) : (
+                    <>
+                      <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-gray-400" />
+                      <Folder className="w-4 h-4 text-blue-400 group-hover:text-blue-300" />
+                    </>
+                  )}
+                </>
+              ) : (
+                <span>
+                  {getFileIcon(node.name)}
+                </span>
+              )}
+              <span className={`text-sm truncate ${
+                isCurrentFile && files.open.length >= 1 ? 'text-blue-400 font-medium' : 'text-gray-300'
+              }`}>
+                {node.name}
+              </span>
+            </div>
+            {node.kind === "directory" &&
+              node.children &&
+              folders.expanded[node.name] &&
+              renderTree(node.children, level + 1)}
+          </li>
+        );
+      })}
     </ul>
   );
+
+  useEffect(() => {
+    console.log(files.open);
+  }, [files.open]);
 
   useEffect(() => {
     const handleClickOutside = () => {
@@ -474,56 +483,115 @@ function Sidebar() {
   }, [contextMenu]);
 
   useEffect(() => {
-    console.dir(parentFolder);
-  }, [parentFolder]);
+    const handleMouseMove = (e) => {
+      if (!isResizing) return;
+
+      const newWidth = e.clientX;
+      if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
+        setSidebarWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
+
+
+  if (!ui.sidebarVisible) return null;
 
   return (
-    <div className="min-w-64 h-[680px] bg-gray-900 text-white p-4 ">
-      <h2 className="text-xl font-semibold mb-4">
-        Project Explorer
+    <div
+      ref={sidebarRef}
+      style={{ width: sidebarWidth }}
+      className={`h-full bg-gray-900 text-white flex flex-col overflow-hidden relative transition-all duration-200 border border-gray-800 ${
+        ui.sidebarVisible ? "translate-x-0" : "-translate-x-full"
+      }`}
+    >
+      <div className="p-4 flex-1 overflow-y-auto scrollbar-thin">
+        <h2 className="text-xl font-semibold mb-4 flex items-center justify-between">
+          <span className="truncate">Project Explorer</span>
+          {editor.directoryHandle && (
+            <div className="flex space-x-1 ml-2 flex-shrink-0">
+              <button
+                title="Add a new file"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addNewFile();
+                }}
+                className="p-1 hover:bg-gray-700 rounded"
+              >
+                <Plus className="w-4 h-4 text-gray-400" />
+              </button>
+              <button
+                title="Add a new folder"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addNewFolder();
+                }}
+                className="p-1 hover:bg-gray-700 rounded"
+              >
+                <Folder className="w-4 h-4 text-gray-400" />
+              </button>
+            </div>
+          )}
+        </h2>
+
         {editor.directoryHandle && (
-          <div
+          <h2
             onClick={(e) => {
               e.preventDefault();
               setRootHandler(editor.directoryHandle);
               setParentFolder(null);
+
             }}
-            className="cursor-pointer"
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setParentFolder(null);
+              setRootHandler(editor.directoryHandle);
+              setContextMenu({
+                visible: true,
+                x: e.pageX,
+                y: e.pageY,
+                node: editor.directoryHandle,
+                isRootNode: true,
+              });
+            }}
+            className="cursor-pointer "
           >
             {editor.directoryHandle.name}
-          </div>
+          </h2>
         )}
-        <div className="ml-auto flex space-x-1">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              addNewFile();
-            }}
-            className="p-1 hover:bg-gray-700 rounded"
-          >
-            <Plus className="w-3 h-3 text-gray-400" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              addNewFolder();
-            }}
-            className="p-1 hover:bg-gray-700 rounded"
-          >
-            <Folder className="w-3 h-3 text-gray-400" />
-          </button>
+        <div className="flex-1 overflow-y-auto">
+          {files.tree.length > 0 && renderTree(files.tree)}
+          {contextMenu.visible && (
+            <ContextMenu
+              x={contextMenu.x}
+              y={contextMenu.y}
+              onAction={handleContextMenuAction}
+              isRootNode={contextMenu.isRootNode}
+            />
+          )}
         </div>
-      </h2>
-      <div className="min-w-60  h-[550px] overflow-y-auto">
-        {files.tree.length > 0 && renderTree(files.tree)}
-        {contextMenu.visible && (
-          <ContextMenu
-            x={contextMenu.x}
-            y={contextMenu.y}
-            onAction={handleContextMenuAction}
-          />
-        )}
       </div>
+
+      <div
+        className="absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-blue-500 opacity-0 hover:opacity-100 "
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setIsResizing(true);
+        }}
+      />
     </div>
   );
 }

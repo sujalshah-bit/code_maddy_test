@@ -90,30 +90,25 @@ function EditorComponent() {
     });
   };
   return (
-    <Flex direction="column" height="650px">
-      <Flex bg="gray.800" color="white" padding={2}>
-        {/* <Button onClick={openFile}>Open File</Button>
-        <Button onClick={saveFile}>Save</Button>
-        <Button onClick={saveFileAs}>Save As</Button> */}
-
-        <Tabs/>
-      </Flex>
-    {files.open.length > 0 && editor.content !== undefined && editor.content !== null ? (
-        <Editor
-          height="650px"
-          language={editor.language}
-          value={editor.content}
-          onMount={handleEditorDidMount}
-          onChange={(value) => setEditor.setContent(value)}
-        />
+    <Flex direction="column" height="100%" className="overflow-hidden">
+      {files.open.length > 0 && editor.content !== undefined && editor.content !== null ? (
+        <div className="flex-1">
+          <Editor
+            height="100%"
+            language={editor.language}
+            value={editor.content}
+            onMount={handleEditorDidMount}
+            onChange={(value) => setEditor.setContent(value)}
+          />
+        </div>
       ) : (
         <Flex
           padding={4}
-          color={"gray.600"}
-          height=""
-          fontSize={"xx-large"}
-          alignItems={"center"}
-          justifyContent={"center"}
+          color="gray.600"
+          height="100%"
+          fontSize={{base: "lg", md: "xl", lg: "2xl"}}
+          alignItems="center"
+          justifyContent="center"
         >
           <Text>Open file to start coding🥰</Text>
         </Flex>

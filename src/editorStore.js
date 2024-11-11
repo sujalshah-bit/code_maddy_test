@@ -32,6 +32,9 @@ const createStore = (set, get) => {
       directoryHandle: null,
       content: null,
     },
+    ui: {
+      sidebarVisible: localStorage.getItem('sidebarVisible') !== 'false',
+    },
     actions: {
       setFiles: {
         setList: createSetter('files.list'),
@@ -48,6 +51,14 @@ const createStore = (set, get) => {
         setLanguage: createSetter('editor.language'),
         setContent: createSetter('editor.content'),
         setDirectoryHandle: createSetter('editor.directoryHandle'),
+      },
+      setUI: {
+        setSidebarVisible: (value) => {
+          localStorage.setItem('sidebarVisible', value);
+          set((state) => {
+            state.ui.sidebarVisible = value;
+          });
+        },
       },
       resetState: () => set((state) => {
         state.files = {
