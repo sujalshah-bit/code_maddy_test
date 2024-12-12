@@ -2,10 +2,15 @@ import React, { useEffect, useRef } from "react";
 import { useStore, useStoreActions } from "../editorStore";
 import { getLanguageFromFileExtension } from "../util/util";
 import { ChevronLeft, ChevronRight, Code, Database, File, FileImage, Music, Video, X } from "lucide-react";
+import { useUserStore } from "../stores/userStore";
+import { useSocket } from "../Context/SocketProvider";
+import { SocketEvent } from "../types/socket";
 
 function Tabs() {
   const { files } = useStore();
   const { setFiles, setEditor } = useStoreActions();
+  const { user } = useUserStore();
+  const { socket } = useSocket();
   const tabsRef = useRef(null);
 
   useEffect(() => {
@@ -30,11 +35,33 @@ function Tabs() {
 
   const handleTabClick = async (fileHandle) => {
     if (files.active?.name !== fileHandle.name) {
-      const file = await fileHandle.getFile();
-      const text = await file.text();
-      setFiles.setActive(fileHandle);
-      setEditor.setContent(text);
-      setEditor.setLanguage(getLanguageFromFileExtension(file.name));
+      let text;
+      console.log(user.isSharer);
+
+      if (user.isSharer) {
+        // Local operation for user A
+        const file = await fileHandle.getFile();
+        text = await file.text();
+        setFiles.setActive(fileHandle);
+        setFiles.setCurrent(fileHandle);
+        setEditor.setContent(text);
+        setEditor.setLanguage(getLanguageFromFileExtension(fileHandle.name));
+      } else {
+        // Remote operation for user B
+        socket.emit(SocketEvent.REQUEST_FILE_CONTENT, fileHandle.name, user.currentRoomId);
+        
+        // Listen for the response
+        socket.once(SocketEvent.REQUEST_FILE_CONTENT_RESPONSE, (response) => {
+          if (response.success) {
+            setFiles.setActive(response.fileHandle);
+            setFiles.setCurrent(response.fileHandle);
+            setEditor.setContent(response.text);
+            setEditor.setLanguage(getLanguageFromFileExtension(response.fileHandle.name));
+          } else {
+            console.error('Error fetching file content:', response.error);
+          }
+        });
+      }
     }
   };
 

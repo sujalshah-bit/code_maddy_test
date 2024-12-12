@@ -1,7 +1,7 @@
 // src/sidebar.jsx
 import { useEffect, useState, useRef } from "react";
-import { useStore, useStoreActions } from "./editorStore";
-import { getLanguageFromFileExtension } from "./util/util";
+import { useStore, useStoreActions } from "../editorStore";
+import { getLanguageFromFileExtension } from "../util/util";
 import {
   Braces,
   ChevronDown,
@@ -331,7 +331,6 @@ function Sidebar() {
   };
 
   const handleFileClick = async (fileHandle) => {
-    console.dir(files.tree);
     const file = await fileHandle.getFile();
     const text = await file.text();
     setFiles.setCurrent(fileHandle);

@@ -1,17 +1,15 @@
 /* eslint-disable react/prop-types */
 // src/components/EditorComponent.jsx
-// import  { useRef } from "react";
-import {    Flex, Text } from "@chakra-ui/react";
+import { Flex, Text } from "@chakra-ui/react";
 import Editor from "@monaco-editor/react";
 import { useStore, useStoreActions } from "../editorStore";
-import Tabs from "./Tab";
 
 import { useEditor } from "../Context/EditorContext";
 
 function EditorComponent() {
   const { editorRef } = useEditor();
-  const {  files,editor } = useStore();
-  const {  setEditor } = useStoreActions();
+  const { files, editor } = useStore();
+  const { setEditor } = useStoreActions();
 
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -91,7 +89,9 @@ function EditorComponent() {
   };
   return (
     <Flex direction="column" height="100%" className="overflow-hidden">
-      {files.open.length > 0 && editor.content !== undefined && editor.content !== null ? (
+      {files.open.length > 0 &&
+      editor.content !== undefined &&
+      editor.content !== null ? (
         <div className="flex-1">
           <Editor
             height="100%"
@@ -106,7 +106,7 @@ function EditorComponent() {
           padding={4}
           color="gray.600"
           height="100%"
-          fontSize={{base: "lg", md: "xl", lg: "2xl"}}
+          fontSize={{ base: "lg", md: "xl", lg: "2xl" }}
           alignItems="center"
           justifyContent="center"
         >
