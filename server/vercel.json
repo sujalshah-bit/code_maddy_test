@@ -9,30 +9,26 @@
         }
       },
       {
-        "src": "server/server.ts",
+        "src": "src/server.ts",
         "use": "@vercel/node"
       }
     ],
     "routes": [
       {
         "src": "/socket.io/(.*)",
-        "dest": "server/server.ts"
+        "dest": "src/server.ts"
       },
       {
         "src": "/health",
-        "dest": "server/server.ts"
+        "dest": "src/server.ts"
       },
       {
         "src": "/rooms",
-        "dest": "server/server.ts"
+        "dest": "src/server.ts"
       },
       {
         "src": "/api/(.*)",
-        "dest": "server/server.ts"
-      },
-      {
-        "src": "/(.*)",
-        "dest": "client/dist/$1"
+        "dest": "src/server.ts"
       }
     ]
   }
