@@ -1,4 +1,5 @@
 export const getLanguageFromFileExtension = (filename) => {
+  console.log(filename)
     const extension = filename.split('.').pop();
     switch (extension) {
       case 'js':

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { useUserActions } from '../stores/userStore';
 import { useSocket } from '../Context/SocketProvider';
-import { useAppStore } from '../stores/appStore';
+import {  useAppStore } from '../stores/appStore';
 
 const LandingPage = () => {
   const [roomId, setRoomId] = useState('');
@@ -56,6 +56,7 @@ const LandingPage = () => {
     setUser.setUsername(username);
     setUser.setCurrentRoomId(roomId);
     setUser.setIsValid(true);
+    // setUsers.setList({currentUser: {username, roomId}})
 
     joinRoom({ roomId, username });
     navigate(`/${roomId}`, { state: { username } });

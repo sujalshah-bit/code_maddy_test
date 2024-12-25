@@ -5,14 +5,67 @@ import Editor from "@monaco-editor/react";
 import { useStore, useStoreActions } from "../editorStore";
 
 import { useEditor } from "../Context/EditorContext";
-
+import { useMemo, useState } from "react";
+import useUserActivity from "../hooks/useUserActivity";
+import { SocketEvent } from "../types/socket";
+import { useSocket } from "../Context/SocketProvider";
+import { useUserStore } from "../stores/userStore";
+import { useAppStore } from "../stores/appStore";
+import { initializeFloatingName } from "../../tooltip";
+import { FloatingNameWidget } from '../../tooltip';
+import { useDebounce } from "../hooks/useDebounce";
 function EditorComponent() {
+  let widget = null;
+let timeout = null;
+  useUserActivity();
   const { editorRef } = useEditor();
+  const { user } = useUserStore();
+  const { users } = useAppStore();
   const { files, editor } = useStore();
   const { setEditor } = useStoreActions();
+  const { socket } = useSocket();
+  const [timeOut, setTimeOut] = useState(setTimeout(() => {}, 0));
+  const [cursorPosition, setCursorPosition] = useState({
+    lineNumber: 1,
+    column: 1,
+  });
+//   const remoteUser = (
+//     () => useAppStore.getState().users.list.filter((u) =>{
+//       console.log(u, user)
+//       return u.username !== user.username
+//     }),
+//     [user],
+// )
+  const [selection, setSelection] = useState(null);
+
+  // Create debounced handlers
+  const handleTypingStart = useDebounce((changes, position, selection) => {
+    socket.emit(SocketEvent.TYPING_START, {
+      changes,
+      cursorPosition: position,
+      selection: selection,
+    });
+  }, 0); // 100ms delay for typing status
+
+  const handleContentUpdate = useDebounce((newContent) => {
+    socket.emit(SocketEvent.FILE_UPDATED, {
+      file: { 
+        name: useStore.getState().files.active.name, 
+        kind: useStore.getState().files.active.kind 
+      },
+      newContent,
+      roomId: user?.currentRoomId,
+    });
+  }, 0); // 500ms delay for content updates
+
+  const handleTypingPause = useDebounce(() => {
+    socket.emit(SocketEvent.TYPING_PAUSE);
+  }, 1000); // 2s delay for typing pause
+
 
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
+    // initializeFloatingName(editor)
     monaco.editor.defineTheme("dark-theme", {
       base: "vs-dark",
       inherit: true,
@@ -72,6 +125,102 @@ function EditorComponent() {
       },
     });
 
+    // Track cursor position changes
+    editor.onDidChangeCursorPosition((e) => {
+      setCursorPosition(e.position);
+      // console.log("CURSOR CHANGE:", cursorPosition)
+    });
+
+    // Track selection changes
+    editor.onDidChangeCursorSelection((e) => {
+      // Your existing selection tracking code
+  setSelection({
+    startLineNumber: e.selection.startLineNumber,
+    startColumn: e.selection.startColumn,
+    endLineNumber: e.selection.endLineNumber,
+    endColumn: e.selection.endColumn,
+  });
+  const remoteUser = useAppStore.getState().users.list.filter((u) =>{
+    // console.log(u, user)
+    return u.username !== user.username
+  })
+  // if(remoteUser[0].typing){
+  // }
+  if(!remoteUser[0] ){
+    // console.log("TYPING", remoteUser[0].typing);
+    return;
+  }
+
+  
+
+  // Add the tooltip functionality here
+  if (timeout) {
+    clearTimeout(timeout);
+  }
+
+  // Get current cursor position
+  const position = editor.getPosition();
+  
+  // Remove existing widget if it exists
+  if (widget) {
+    editor.removeOverlayWidget(widget);
+  }
+
+  // Create and add new widget
+  widget = new FloatingNameWidget(remoteUser[0].username);
+  editor.addOverlayWidget(widget);
+
+  // Position the widget above the cursor
+  const coordinates = editor.getScrolledVisiblePosition(position);
+  console.log(coordinates)
+  if (coordinates) {
+    widget.domNode.style.top = `${coordinates.top - 30}px`;
+    widget.domNode.style.left = `${coordinates.left}px`;
+  }
+
+  // Set timeout to remove widget after 3 seconds
+  timeout = setTimeout(() => {
+    if (widget) {
+      editor.removeOverlayWidget(widget);
+      widget = null;
+    }
+  }, 3000);
+});
+    
+    // Track content changes in more detail if needed
+    editor.onDidChangeModelContent((e) => {
+      const changes = e.changes;
+    const newContent = editor.getValue();
+    const position = editor.getPosition();
+    const selection = editor.getSelection();
+
+      // console.log(remoteUser)
+      // You can access detailed change information here:
+      // changes[].range: The range that got replaced
+      // changes[].text: The new text for the range
+      // changes[].rangeLength: The length of the range that got replaced
+
+      // setEditor.setContent(newContent);
+       // Call debounced functions
+    handleTypingStart(changes, position, selection);
+    handleContentUpdate(newContent);
+    handleTypingPause();
+      // clearTimeout(timeOut);
+
+      // const newTimeOut = setTimeout(
+      //   () => socket.emit(SocketEvent.TYPING_PAUSE),
+      //   2000
+      // );
+      // setTimeOut(newTimeOut);
+      // You can also emit these changes to a server or other components
+      // console.log("Content changed:", {
+      //   changes,
+      //   newContent,
+      //   cursorPosition: editor.getPosition(),
+      //   selection: editor.getSelection(),
+      // });
+    });
+
     monaco.editor.setTheme("dark-theme");
 
     // Set TypeScript compiler options
@@ -87,6 +236,13 @@ function EditorComponent() {
       noSyntaxValidation: false,
     });
   };
+
+  // Optional: Add methods to expose cursor and selection information
+  const getCursorInfo = () => ({
+    position: cursorPosition,
+    selection: selection,
+  });
+
   return (
     <Flex direction="column" height="100%" className="overflow-hidden">
       {files.open.length > 0 &&
@@ -99,6 +255,14 @@ function EditorComponent() {
             value={editor.content}
             onMount={handleEditorDidMount}
             onChange={(value) => setEditor.setContent(value)}
+            options={{
+              // Add these options for better cursor and selection handling
+              cursorBlinking: "smooth",
+              cursorSmoothCaretAnimation: true,
+              selectionHighlight: true,
+              occurrencesHighlight: true,
+              renderWhitespace: "selection",
+            }}
           />
         </div>
       ) : (

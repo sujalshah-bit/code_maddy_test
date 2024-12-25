@@ -14,4 +14,9 @@ export const User = {
 export const RemoteUser = {
     username: '',
     socketId: ''
-}; 
+};
+
+export const USER_CONNECTION_STATUS = {
+    OFFLINE: "offline",
+    ONLINE: "online",
+}

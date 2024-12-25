@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useStore, useStoreActions } from "../editorStore";
 import { getLanguageFromFileExtension } from "../util/util";
 import { ChevronLeft, ChevronRight, Code, Database, File, FileImage, Music, Video, X } from "lucide-react";
@@ -33,21 +33,42 @@ function Tabs() {
     };
   }, []);
 
+  const serializableOpenFiles = useMemo(() => 
+    files.open.map(fileHandle => ({
+        name: fileHandle.name,
+        kind: fileHandle.kind,
+    })), 
+    [files.open]
+);
+
+const serializableActiveFile = useMemo(() => 
+    files.active
+        ? { name: files.active.name, kind: files.active.kind }
+        : null, 
+    [files.active]
+);
+
+
   const handleTabClick = async (fileHandle) => {
     if (files.active?.name !== fileHandle.name) {
       let text;
-      console.log(user.isSharer);
 
       if (user.isSharer) {
-        // Local operation for user A
         const file = await fileHandle.getFile();
         text = await file.text();
         setFiles.setActive(fileHandle);
         setFiles.setCurrent(fileHandle);
         setEditor.setContent(text);
         setEditor.setLanguage(getLanguageFromFileExtension(fileHandle.name));
+        console.log(serializableOpenFiles)
+        socket.emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
+          openFiles: serializableOpenFiles,
+          activeFile: { name: fileHandle.name, kind: fileHandle.kind },
+          roomId: user.currentRoomId,
+      });
       } else {
         // Remote operation for user B
+        console.log(user.currentRoomId)
         socket.emit(SocketEvent.REQUEST_FILE_CONTENT, fileHandle.name, user.currentRoomId);
         
         // Listen for the response
@@ -61,6 +82,12 @@ function Tabs() {
             console.error('Error fetching file content:', response.error);
           }
         });
+        socket.emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
+          openFiles: serializableOpenFiles,
+          activeFile: { name: fileHandle.name, kind: fileHandle.kind },
+          roomId: user.currentRoomId,
+          isSharer: true,
+      });
       }
     }
   };
@@ -70,6 +97,7 @@ function Tabs() {
 
     const newOpenFiles = files.open.filter((file) => file.name !== fileHandle.name);
     setFiles.setOpen(newOpenFiles);
+    console.log(files.open)
 
     if (newOpenFiles.length === 0) {
       setFiles.setActive(null);
@@ -89,6 +117,12 @@ function Tabs() {
     setFiles.setCurrent(fileHandle);
     setEditor.setContent(text);
     setEditor.setLanguage(getLanguageFromFileExtension(file.name));
+    console.log(serializableOpenFiles(fileHandle ))
+  //   socket.emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
+  //     openFiles: [...serializableOpenFiles(file), file],
+  //     activeFile: { name: fileHandle.name, kind: fileHandle.kind },
+  //     roomId: user.currentRoomId,
+  // });
   };
 
   const getFileIcon = (fileName) => {

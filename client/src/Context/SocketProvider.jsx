@@ -51,10 +51,12 @@ export const SocketProvider = ({ children }) => {
     // Join acceptance handler
     const handleJoiningAccept = useCallback(({ user, users }) => {
         setUsers.setCurrent(user);
-        setUsers.setList(users);
+        setUsers.setList((prevList) => [...prevList, user ]);
         setUsers.setStatus(USER_STATUS.JOINED);
-
+        
         if (users.length > 1) {
+            console.log("user0:", users[0], "users1:" ,users[1])
+            setUsers.setList((prevList) => [...prevList,  users[0] ]);
             console.log('Syncing data, please wait...');
         }
     }, [setUsers]);

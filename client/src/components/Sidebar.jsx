@@ -1,5 +1,5 @@
 // src/sidebar.jsx
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useStore, useStoreActions } from "../editorStore";
 import { getLanguageFromFileExtension } from "../util/util";
 import {
@@ -16,9 +16,16 @@ import {
   Plus,
   Video,
 } from "lucide-react";
+import { useSocket } from "../Context/SocketProvider";
+import { SocketEvent } from "../types/socket";
+import { useUserStore } from "../stores/userStore";
+import { useAppStore } from "../stores/appStore";
 
 function Sidebar() {
   const { files, folders, editor, ui } = useStore();
+  const { socket } = useSocket();
+  const { user } = useUserStore();
+  const { users } = useAppStore();
   const { setFiles, setEditor, setFolders } = useStoreActions();
   const [parentFolder, setParentFolder] = useState(null);
   const [rootHandler, setRootHandler] = useState(null);
@@ -330,6 +337,23 @@ function Sidebar() {
     setFolders.setExpanded(newExpandedState);
   };
 
+  const serializableOpenFiles = (file) => {
+    // Filter out the file you want to skip and then map
+    return files.open
+        .filter((fileHandle) => fileHandle.name !== file.name) // Exclude the file with the same name
+        .map((fileHandle) => ({
+            name: fileHandle.name, // The name of the file
+            kind: fileHandle.kind  // The kind of the file
+        }));
+};
+
+const serializableActiveFile = useMemo(() => 
+    files.active
+        ? { name: files.active.name, kind: files.active.kind }
+        : null, 
+    [files.active]
+);
+
   const handleFileClick = async (fileHandle) => {
     const file = await fileHandle.getFile();
     const text = await file.text();
@@ -342,6 +366,15 @@ function Sidebar() {
     if (!fileNames.includes(fileHandle.name)) {
       setFiles.setOpen([...files.open, fileHandle]);
     }
+   if(users.list.length > 1){
+    const file = { name: fileHandle.name, kind: fileHandle.kind };
+    console.log(serializableOpenFiles(file))
+    socket.emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
+      openFiles: [...serializableOpenFiles(file), file],
+      activeFile: { name: fileHandle.name, kind: fileHandle.kind },
+      roomId: user.currentRoomId,
+  });
+   }
   };
 
   const handleContextMenuAction = async (action, isRootNode) => {

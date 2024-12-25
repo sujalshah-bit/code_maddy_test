@@ -103,24 +103,33 @@ io.on("connection", (socket) => {
 	)
 	socket.on(
 		SocketEvent.RESYNC_FILE_STRUCTURE,
-		({ openFiles, activeFile,text, socketId }) => {
+		({ openFiles, activeFile,text, roomId, isSharer }) => {
+			console.log({roomId})
 			console.log('Syncing file structure:', openFiles, activeFile);
-			io.to(socketId).emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
+			const users = getUsersInRoom(roomId);
+			const anotherUser = users.filter((user) => user.socketId !== socket.id);
+			console.log(anotherUser)
+			io.to(anotherUser[0].socketId).emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
 				openFiles,
 				activeFile,
-				text
+				text,
+				isSharer
 			})
 		}
 	)
 	socket.on(
 		SocketEvent.REQUEST_FILE_CONTENT,
-		(fileName, roomId, callback) => {
+		(fileName, roomId) => {
+			if(!roomId){
+				console.log("room Id is undefined")
+				return;
+			}
 			console.log('Requesting file content:', fileName);
 			const users = getUsersInRoom(roomId);
 			const anotherUser = users.filter((user) => user.socketId !== socket.id);
 			
-			// Store the callback for later use
 			const requestingSocketId = socket.id;
+			console.log(users)
 			
 			io.to(anotherUser[0].socketId).emit(SocketEvent.FILE_REQUESTED_FROM_PEER, {
 				fileName,
@@ -140,6 +149,72 @@ io.on("connection", (socket) => {
 		}
 	);
 
+	// Handle user status
+	socket.on(SocketEvent.USER_OFFLINE, ({ socketId }) => {
+		userSocketMap = userSocketMap.map((user) => {
+			if (user.socketId === socketId) {
+				return { ...user, status: USER_CONNECTION_STATUS.OFFLINE }
+			}
+			return user
+		})
+		const roomId = getRoomId(socketId)
+		if (!roomId) return
+		socket.broadcast.to(roomId).emit(SocketEvent.USER_OFFLINE, { socketId })
+	})
+
+	socket.on(SocketEvent.USER_ONLINE, ({ socketId }) => {
+		userSocketMap = userSocketMap.map((user) => {
+			if (user.socketId === socketId) {
+				return { ...user, status: USER_CONNECTION_STATUS.ONLINE }
+			}
+			return user
+		})
+		const roomId = getRoomId(socketId)
+		if (!roomId) return
+		socket.broadcast.to(roomId).emit(SocketEvent.USER_ONLINE, { socketId })
+	})
+
+	socket.on(SocketEvent.TYPING_START, ({ changes, cursorPosition, selection }) => {
+		userSocketMap = userSocketMap.map((user) => {
+			if (user.socketId === socket.id) {
+				return { ...user, typing: true, cursorPosition }
+			}
+			return user
+		})
+		const user = getUserBySocketId(socket.id)
+		if (!user) return
+		const roomId = user.roomId
+		socket.broadcast.to(roomId).emit(SocketEvent.TYPING_START, { user })
+	})
+
+	socket.on(SocketEvent.TYPING_PAUSE, () => {
+		userSocketMap = userSocketMap.map((user) => {
+			if (user.socketId === socket.id) {
+				return { ...user, typing: false }
+			}
+			return user
+		})
+		const user = getUserBySocketId(socket.id)
+		if (!user) return
+		const roomId = user.roomId
+		socket.broadcast.to(roomId).emit(SocketEvent.TYPING_PAUSE, { user })
+	})
+
+	socket.on(SocketEvent.FILE_UPDATED, ({ file, newContent, roomId }) => {
+		console.log('File updated:', file, newContent);
+		// Handle the file update logic here
+		const users = getUsersInRoom(roomId);
+		const anotherUser = users.filter((user) => user.socketId !== socket.id);
+		if(anotherUser.length > 0){
+			io.to(anotherUser[0].socketId).emit(SocketEvent.FILE_UPDATED, { file, newContent });
+		}else{
+			console.log("No another user found", roomId, anotherUser)
+		}
+		
+	})
+
+
+
 	socket.on("disconnecting", () => {
 		const user = getUserBySocketId(socket.id)
 		if (!user) return
@@ -147,6 +222,7 @@ io.on("connection", (socket) => {
 		socket.broadcast
 			.to(roomId)
 			.emit(SocketEvent.USER_DISCONNECTED, { user })
+			console.log('USER GONE \n\n\n')
 		userSocketMap = userSocketMap.filter((u) => u.socketId !== socket.id)
 		socket.leave(roomId)
 	})
