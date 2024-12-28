@@ -8,11 +8,13 @@ import MenuBar from "./MenuBar";
 import ActivityBar from "./ActivityBar";
 import Tabs from "./Tab";
 import { useAppStore } from "../stores/appStore";
+import useChat from "../hooks/useChat";
 
 const EditorLayout = () => {
   const navigate = useNavigate();
   const { username, currentRoomId } = useUserStore((state) => state.user);
   const { notifications } = useAppStore();
+  useChat();
   useEffect(() => {
     if (!username || !currentRoomId || notifications.errors.length > 0) {
       console.log(username,currentRoomId);

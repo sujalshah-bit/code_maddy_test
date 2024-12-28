@@ -12,6 +12,7 @@ const SocketEvent = {
     USER_DISCONNECTED: "user-disconnected",
     SYNC_FILE_STRUCTURE: "sync-file-structure",
     RESYNC_FILE_STRUCTURE: "resync-file-structure",
+    RESYNC_OPEN_FILES: "resync-open-files",
     DIRECTORY_CREATED: "directory-created",
     DIRECTORY_UPDATED: "directory-updated",
     DIRECTORY_RENAMED: "directory-renamed",

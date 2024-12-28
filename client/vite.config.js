@@ -9,13 +9,13 @@ export default defineConfig({
   server: {
     proxy: {
       '/socket.io': {
-        // target: 'http://localhost:5001',
-        target: 'https://code-maddy-test-api-sujal.vercel.app',
+        target: 'http://localhost:5001',
+        // target: 'https://code-maddy-test-api-sujal.vercel.app',
         ws: true
       },
       '/api': {
-        // target: 'http://localhost:5001'
-        target: 'https://code-maddy-test-api-sujal.vercel.app'
+        target: 'http://localhost:5001'
+        // target: 'https://code-maddy-test-api-sujal.vercel.app'
       }
     }
   }

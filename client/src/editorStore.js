@@ -34,7 +34,7 @@ const createStore = (set, get) => {
     },
     ui: {
       sidebarVisible: localStorage.getItem('sidebarVisible') !== 'false',
-      searchPanelVisible: false,
+      chatPanelVisible: false,
     },
     actions: {
       setFiles: {
@@ -60,7 +60,7 @@ const createStore = (set, get) => {
             state.ui.sidebarVisible = value;
           });
         },
-        setSearchPanelVisible: createSetter('ui.searchPanelVisible'),
+        setChatPanelVisible: createSetter('ui.chatPanelVisible'),
       },
       resetState: () => set((state) => {
         state.files = {

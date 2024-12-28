@@ -64,7 +64,7 @@ export const SocketProvider = ({ children }) => {
     // User disconnection handler
     const handleUserLeft = useCallback(({ user }) => {
         console.log(`${user.username} left the room`);
-        setUsers(prevUsers => 
+        setUsers.setList(prevUsers => 
             prevUsers.filter(u => u.username !== user.username)
         );
     }, [setUsers]);

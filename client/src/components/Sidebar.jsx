@@ -447,6 +447,7 @@ const serializableActiveFile = useMemo(() =>
                   setRootHandler(null);
                   toggleFolder(node);
                 } else {
+                  console.log('file clicked')
                   handleFileClick(node.handle);
                 }
               }}

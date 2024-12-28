@@ -95,10 +95,7 @@ export const FileProvider = ({ children }) => {
     [setFiles, setEditor]
   );
 
-  const handleRequestFileContent = useCallback((data) => {
-    // console.log("Requesting file content:", data);
-  }, []);
-
+ 
   const handleUserJoined = useCallback(
     async (user) => {
       // console.log("User joined:", user);
@@ -140,6 +137,75 @@ export const FileProvider = ({ children }) => {
     },
     [addNotification, files.active, files.open, setUsers, socket]
   );
+
+  const handleResyncingOpenFiles = useCallback(async (data) => {
+    if(data.removeFile === null && data.activeFile=== null){
+      setFiles.setActive(null);
+      setFiles.setCurrent(null);
+      setEditor.setContent("");
+      setFiles.setOpen([])
+      setEditor.setLanguage("javascript");
+      return;
+    }
+    const newOpenFiles = useStore.getState().files.open.filter((file) => {
+      return file.name !== data.removeFile.name;
+    });
+    setFiles.setOpen(newOpenFiles)
+    if (data.isSharer) {
+      if (files.open) {
+        const activeFile = useStore.getState().files.open.filter((file) => {
+          return file.name === data.activeFile.name;
+        });
+        
+        if (activeFile.length > 0) {
+          const fileHandle = activeFile[0];
+
+          try {
+            // Use `getFile` to fetch the file object
+            const file = await fileHandle.getFile();
+            // Read the content as text
+            const content = await file.text();
+            setFiles.setActive(fileHandle);
+            setFiles.setCurrent(fileHandle);
+            // Set the content and other properties in your editor and state
+            setEditor.setContent(content);
+            setEditor.setLanguage(
+              getLanguageFromFileExtension(fileHandle.name)
+            );
+          } catch (err) {
+            console.error("Error reading file content:", err);
+          }
+        } else {
+          console.error("No matching file found in files.open");
+        }
+      }
+    } else {
+      
+
+      socket.emit(
+        SocketEvent.REQUEST_FILE_CONTENT,
+        data.activeFile.name,
+        user.currentRoomId
+      );
+
+      // Listen for the response
+      socket.once(SocketEvent.REQUEST_FILE_CONTENT_RESPONSE, (response) => {
+        if (response.success) {
+          setFiles.setActive(response.fileHandle);
+          setFiles.setCurrent(response.fileHandle);
+          setEditor.setContent(response.text);
+          setEditor.setLanguage(
+            getLanguageFromFileExtension(response.fileHandle.name)
+          );
+        } else {
+          console.error("Error fetching file content:", response.error);
+        }
+      });
+      setEditor.setContent(data.text);
+    }
+    // console.log("Requesting file content:", data);
+  }, [files.open, setEditor, setFiles, socket, user.currentRoomId]);
+
   const handleReSyncFileStructure = useCallback(
     async (data) => {
       // console.log("File structure REsynced:", data);
@@ -229,17 +295,20 @@ export const FileProvider = ({ children }) => {
     [files.open, socket, user.currentRoomId]
   );
 
-  const handleFileUpdated = useCallback((data) => {
-    // console.log("File updated:", data);
-    setEditor.setContent(data.newContent);
-  }, [setEditor]); 
+  const handleFileUpdated = useCallback(
+    (data) => {
+      // console.log("File updated:", data);
+      setEditor.setContent(data.newContent);
+    },
+    [setEditor]
+  );
 
   // Register socket event listeners
   useEffect(() => {
     socket.once(SocketEvent.SYNC_FILE_STRUCTURE, handleFileStructureSync);
     socket.on(SocketEvent.RESYNC_FILE_STRUCTURE, handleReSyncFileStructure);
     socket.on(SocketEvent.USER_JOINED, handleUserJoined);
-    // socket.on(SocketEvent.REQUEST_FILE_CONTENT, handleRequestFileContent);
+    socket.on(SocketEvent.RESYNC_OPEN_FILES, handleResyncingOpenFiles);
     socket.on(SocketEvent.FILE_REQUESTED_FROM_PEER, handleFileRequestFromPeer);
     // socket.on(SocketEvent.DIRECTORY_CREATED, handleDirCreated);
     // socket.on(SocketEvent.DIRECTORY_UPDATED, handleDirUpdated);
@@ -253,7 +322,7 @@ export const FileProvider = ({ children }) => {
     return () => {
       socket.off(SocketEvent.RESYNC_FILE_STRUCTURE, handleFileStructureSync);
       socket.off(SocketEvent.USER_JOINED, handleUserJoined);
-      // socket.off(SocketEvent.REQUEST_FILE_CONTENT, handleRequestFileContent);
+      socket.off(SocketEvent.RESYNC_OPEN_FILES, handleResyncingOpenFiles);
       socket.off(
         SocketEvent.FILE_REQUESTED_FROM_PEER,
         handleFileRequestFromPeer
@@ -267,23 +336,23 @@ export const FileProvider = ({ children }) => {
       // socket.off(SocketEvent.FILE_RENAMED, handleFileRenamed);
       // socket.off(SocketEvent.FILE_DELETED, handleFileDeleted);
     };
-  }, [handleFileStructureSync, handleUserJoined, handleRequestFileContent, handleFileRequestFromPeer, socket, files.open, setFiles, user, setEditor, handleReSyncFileStructure, handleFileUpdated]);
-  const serializableOpenFiles = useMemo(
-    () =>
-      files.open.map((fileHandle) => ({
-        name: fileHandle.name,
-        kind: fileHandle.kind,
-      })),
-    [files.open]
-  );
+  }, [handleFileStructureSync, handleUserJoined, handleFileRequestFromPeer, socket, files.open, setFiles, user, setEditor, handleReSyncFileStructure, handleFileUpdated, handleResyncingOpenFiles]);
+  // const serializableOpenFiles = useMemo(
+  //   () =>
+  //     files.open.map((fileHandle) => ({
+  //       name: fileHandle.name,
+  //       kind: fileHandle.kind,
+  //     })),
+  //   [files.open]
+  // );
 
-  const serializableActiveFile = useMemo(
-    () =>
-      files.active
-        ? { name: files.active.name, kind: files.active.kind }
-        : null,
-    [files.active]
-  );
+  // const serializableActiveFile = useMemo(
+  //   () =>
+  //     files.active
+  //       ? { name: files.active.name, kind: files.active.kind }
+  //       : null,
+  //   [files.active]
+  // );
 
   // const memoizedUserList = useMemo(() => userList, [JSON.stringify(userList)]);
   // Add this new useEffect after your existing useEffect

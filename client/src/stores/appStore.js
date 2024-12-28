@@ -22,6 +22,9 @@ const createStore = (set, get) => {
    drawing: {
      data: null,
    },
+   chat: {
+    messages: [],
+   },
    errors: {
      list: [],
    },
@@ -40,6 +43,9 @@ const createStore = (set, get) => {
      },
      setDrawing: {
        setData: createSetter('drawing.data'),
+     },
+     setChat: {
+      setMessages: createSetter('chat.messages'),
      },
      setErrors: {
        addError: (error) => set((state) => {

@@ -10,6 +10,7 @@ enum SocketEvent {
 	USER_DISCONNECTED = "user-disconnected",
 	SYNC_FILE_STRUCTURE = "sync-file-structure",
 	RESYNC_FILE_STRUCTURE = "resync-file-structure",
+	RESYNC_OPEN_FILES= "resync-open-files",
 	REQUEST_FILE_CONTENT = "request-file-content",
 	REQUEST_FILE_CONTENT_RESPONSE = "request-file-content-response",
 	SEND_FILE_CONTENT = "send-file-content",

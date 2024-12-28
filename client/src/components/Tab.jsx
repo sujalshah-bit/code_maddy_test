@@ -1,15 +1,25 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import  { useEffect, useMemo, useRef } from "react";
 import { useStore, useStoreActions } from "../editorStore";
 import { getLanguageFromFileExtension } from "../util/util";
-import { ChevronLeft, ChevronRight, Code, Database, File, FileImage, Music, Video, X } from "lucide-react";
+import {
+  Code,
+  Database,
+  File,
+  FileImage,
+  Music,
+  Video,
+  X,
+} from "lucide-react";
 import { useUserStore } from "../stores/userStore";
 import { useSocket } from "../Context/SocketProvider";
 import { SocketEvent } from "../types/socket";
+import { useAppStore } from "../stores/appStore";
 
 function Tabs() {
   const { files } = useStore();
   const { setFiles, setEditor } = useStoreActions();
   const { user } = useUserStore();
+  const { users } = useAppStore();
   const { socket } = useSocket();
   const tabsRef = useRef(null);
 
@@ -33,25 +43,31 @@ function Tabs() {
     };
   }, []);
 
-  const serializableOpenFiles = useMemo(() => 
-    files.open.map(fileHandle => ({
+  const serializableOpenFiles = (
+    () =>
+      files.open?.map((fileHandle) => ({
         name: fileHandle.name,
         kind: fileHandle.kind,
-    })), 
-    [files.open]
-);
+      }))
+  );
 
-const serializableActiveFile = useMemo(() => 
-    files.active
-        ? { name: files.active.name, kind: files.active.kind }
-        : null, 
-    [files.active]
-);
-
+  // const serializableActiveFile = useMemo(
+  //   () =>
+  //     files.active
+  //       ? { name: files.active.name, kind: files.active.kind }
+  //       : null,
+  //   [files.active]
+  // );
 
   const handleTabClick = async (fileHandle) => {
+    
     if (files.active?.name !== fileHandle.name) {
       let text;
+      let roomFull;
+      
+      if(users.list.length > 1){
+        roomFull = true;
+      }
 
       if (user.isSharer) {
         const file = await fileHandle.getFile();
@@ -60,55 +76,87 @@ const serializableActiveFile = useMemo(() =>
         setFiles.setCurrent(fileHandle);
         setEditor.setContent(text);
         setEditor.setLanguage(getLanguageFromFileExtension(fileHandle.name));
-        console.log(serializableOpenFiles)
-        socket.emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
-          openFiles: serializableOpenFiles,
-          activeFile: { name: fileHandle.name, kind: fileHandle.kind },
-          roomId: user.currentRoomId,
-      });
+        if(roomFull){
+          socket.emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
+            openFiles: serializableOpenFiles(),
+            activeFile: { name: fileHandle.name, kind: fileHandle.kind },
+            roomId: user.currentRoomId,
+          });
+        }
       } else {
         // Remote operation for user B
-        console.log(user.currentRoomId)
-        socket.emit(SocketEvent.REQUEST_FILE_CONTENT, fileHandle.name, user.currentRoomId);
-        
-        // Listen for the response
-        socket.once(SocketEvent.REQUEST_FILE_CONTENT_RESPONSE, (response) => {
-          if (response.success) {
-            setFiles.setActive(response.fileHandle);
-            setFiles.setCurrent(response.fileHandle);
-            setEditor.setContent(response.text);
-            setEditor.setLanguage(getLanguageFromFileExtension(response.fileHandle.name));
-          } else {
-            console.error('Error fetching file content:', response.error);
-          }
-        });
-        socket.emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
-          openFiles: serializableOpenFiles,
-          activeFile: { name: fileHandle.name, kind: fileHandle.kind },
-          roomId: user.currentRoomId,
-          isSharer: true,
-      });
+        console.log(user.currentRoomId);
+        if (roomFull) {
+          socket.emit(
+            SocketEvent.REQUEST_FILE_CONTENT,
+            fileHandle.name,
+            user.currentRoomId
+          );
+  
+          // Listen for the response
+          socket.once(SocketEvent.REQUEST_FILE_CONTENT_RESPONSE, (response) => {
+            if (response.success) {
+              setFiles.setActive(response.fileHandle);
+              setFiles.setCurrent(response.fileHandle);
+              setEditor.setContent(response.text);
+              setEditor.setLanguage(
+                getLanguageFromFileExtension(response.fileHandle.name)
+              );
+            } else {
+              console.error("Error fetching file content:", response.error);
+            }
+          });
+          socket.emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
+            openFiles: serializableOpenFiles,
+            activeFile: { name: fileHandle.name, kind: fileHandle.kind },
+            roomId: user.currentRoomId,
+            isSharer: true,
+          });
+        }
       }
     }
   };
 
   const handleCancelClick = async (fileHandle, event) => {
     event.stopPropagation();
-
-    const newOpenFiles = files.open.filter((file) => file.name !== fileHandle.name);
+    const roomFull = users.list.length > 1;
+    console.log("Users list length: ", users.list.length);
+  
+    const newOpenFiles = files.open.filter(file => file.name !== fileHandle.name);
     setFiles.setOpen(newOpenFiles);
-    console.log(files.open)
-
+    console.log("Updated open files: ", newOpenFiles);
+  
     if (newOpenFiles.length === 0) {
       setFiles.setActive(null);
       setFiles.setCurrent(null);
       setEditor.setContent("");
       setEditor.setLanguage("javascript");
+  
+      if (roomFull) {
+        const eventPayload = {
+          removeFile: null,
+          activeFile: null,
+          roomId: user.currentRoomId,
+          ...(user.isSharer ? {} : { isSharer: true }),
+        };
+        socket.emit(SocketEvent.RESYNC_OPEN_FILES, eventPayload);
+      }
     } else if (files.active?.name === fileHandle.name) {
       const newActiveFile = newOpenFiles[newOpenFiles.length - 1];
-      await activateFile(newActiveFile);
+      if (user.isSharer) {
+        await activateFile(newActiveFile);
+      }
+      if (roomFull) {
+        socket.emit(SocketEvent.RESYNC_OPEN_FILES, {
+          removeFile: { name: fileHandle.name, kind: fileHandle.kind },
+          activeFile: { name: newActiveFile.name, kind: newActiveFile.kind },
+          roomId: user.currentRoomId,
+          ...(user.isSharer ? {} : { isSharer: true }),
+        });
+      }
     }
   };
+  
 
   const activateFile = async (fileHandle) => {
     const file = await fileHandle.getFile();
@@ -117,40 +165,35 @@ const serializableActiveFile = useMemo(() =>
     setFiles.setCurrent(fileHandle);
     setEditor.setContent(text);
     setEditor.setLanguage(getLanguageFromFileExtension(file.name));
-    console.log(serializableOpenFiles(fileHandle ))
-  //   socket.emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
-  //     openFiles: [...serializableOpenFiles(file), file],
-  //     activeFile: { name: fileHandle.name, kind: fileHandle.kind },
-  //     roomId: user.currentRoomId,
-  // });
+    // console.log(serializableOpenFiles(fileHandle));
   };
 
   const getFileIcon = (fileName) => {
-    const extension = fileName.split('.').pop()?.toLowerCase();
+    const extension = fileName.split(".").pop()?.toLowerCase();
     switch (extension) {
-      case 'html':
-      case 'css':
-      case 'js':
-      case 'ts':
-      case 'jsx':
-      case 'tsx':
+      case "html":
+      case "css":
+      case "js":
+      case "ts":
+      case "jsx":
+      case "tsx":
         return <Code className="w-4 h-4 text-yellow-400" />;
-      case 'png':
-      case 'jpg':
-      case 'jpeg':
-      case 'gif':
-      case 'svg':
+      case "png":
+      case "jpg":
+      case "jpeg":
+      case "gif":
+      case "svg":
         return <FileImage className="w-4 h-4 text-green-400" />;
-      case 'mp3':
-      case 'wav':
+      case "mp3":
+      case "wav":
         return <Music className="w-4 h-4 text-purple-400" />;
-      case 'mp4':
-      case 'mov':
+      case "mp4":
+      case "mov":
         return <Video className="w-4 h-4 text-red-400" />;
-      case 'json':
-      case 'xml':
+      case "json":
+      case "xml":
         return <Database className="w-4 h-4 text-yellow-500" />;
-      case 'md':
+      case "md":
         return <File className="w-4 h-4 text-[#493628]" />;
       default:
         return <File className="w-4 h-4 text-gray-400" />;
@@ -159,8 +202,8 @@ const serializableActiveFile = useMemo(() =>
 
   return (
     <div className="flex items-center w-full bg-gray-900 text-white h-12 overflow-hidden border-l border-t border-gray-800">
-      <div 
-        ref={tabsRef} 
+      <div
+        ref={tabsRef}
         className="flex-1 flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
       >
         {files.open?.map((fileHandle) => (
@@ -172,19 +215,21 @@ const serializableActiveFile = useMemo(() =>
               transition-colors duration-150
               hover:bg-gray-800
               focus:outline-none focus:bg-gray-700
-              ${files.active?.name === fileHandle.name 
-                ? 'bg-gray-800 text-white border-b-2 border-b-blue-500' 
-                : 'text-gray-400'
+              ${
+                files.active?.name === fileHandle.name
+                  ? "bg-gray-800 text-white border-b-2 border-b-blue-500"
+                  : "text-gray-400"
               }
             `}
           >
             {getFileIcon(fileHandle.name)}
-            <span className="ml-2 max-w-[150px] truncate">{fileHandle.name}</span>
+            <span className="ml-2 max-w-[150px] truncate">
+              {fileHandle.name}
+            </span>
             <button
               onClick={(e) => handleCancelClick(fileHandle, e)}
               className="ml-2 p-1  rounded-sm  hover:bg-gray-600 focus:outline-none focus:bg-gray-600"
             >
-
               <X className="w-3 h-3" />
             </button>
           </button>

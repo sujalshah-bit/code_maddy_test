@@ -101,7 +101,7 @@ const MenuBar = () => {
       setEditor.setDirectoryHandle(directoryHandle);
       setEditor.setContent(null);
       setUI.setSidebarVisible(true);
-      setUI.setSearchPanelVisible(false);
+      setUI.setChatPanelVisible(false);
       setFiles.setOpen([]);
       setUser.setIsSharer(true);
     } catch (error) {

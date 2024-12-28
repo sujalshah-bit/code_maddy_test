@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import { Menu, Maximize2, Mic, MicOff, Video, VideoOff, MessageCircle, Phone, X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"

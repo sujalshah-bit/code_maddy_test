@@ -105,14 +105,28 @@ io.on("connection", (socket) => {
 		SocketEvent.RESYNC_FILE_STRUCTURE,
 		({ openFiles, activeFile,text, roomId, isSharer }) => {
 			console.log({roomId})
-			console.log('Syncing file structure:', openFiles, activeFile);
+			console.log('RESYNCING file structure:', openFiles, activeFile);
 			const users = getUsersInRoom(roomId);
 			const anotherUser = users.filter((user) => user.socketId !== socket.id);
-			console.log(anotherUser)
 			io.to(anotherUser[0].socketId).emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
 				openFiles,
 				activeFile,
 				text,
+				isSharer
+			})
+		}
+	)
+	socket.on(
+		SocketEvent.RESYNC_OPEN_FILES,
+		({ removeFile, activeFile, roomId, isSharer }) => {
+			console.log({roomId})
+			console.log('Resyncing Open Files:', removeFile, activeFile);
+			const users = getUsersInRoom(roomId);
+			const anotherUser = users.filter((user) => user.socketId !== socket.id);
+			console.log({anotherUser})
+			io.to(anotherUser[0].socketId).emit(SocketEvent.RESYNC_OPEN_FILES, {
+				removeFile,
+				activeFile,
 				isSharer
 			})
 		}
@@ -213,6 +227,19 @@ io.on("connection", (socket) => {
 		
 	})
 
+	socket.on(SocketEvent.SEND_MESSAGE, ({ message, user, time, roomId }) => {
+		console.log('RECE MESSAGE ON SERVER:', { message, user, time, roomId });
+		// Handle the file update logic here
+		const users = getUsersInRoom(roomId);
+		const anotherUser = users.filter((user) => user.socketId !== socket.id);
+		if(anotherUser.length > 0){
+			io.to(anotherUser[0].socketId).emit(SocketEvent.RECEIVE_MESSAGE, { message, user, time });
+		}else{
+			console.log("No another user found", roomId, anotherUser)
+		}
+		
+	})
+
 
 
 	socket.on("disconnecting", () => {
@@ -272,9 +299,19 @@ app.get("/health", (req: Request, res: Response) => {
 	});
 });
 
-const PORT = process.env.PORT || 5001;
+const PORT = Number(process.env.PORT) || 5001;
 
-server.listen(PORT, () => {
+// Listen on 0.0.0.0 to allow external access
+server.listen(PORT, "0.0.0.0", () => {
 	console.log(`Server is running on port ${PORT}`);
-});
 
+	const os = require("os");
+	const interfaces = os.networkInterfaces();
+	for (const name in interfaces) {
+		for (const iface of interfaces[name]) {
+			if (iface.family === "IPv4" && !iface.internal) {
+				console.log(`Accessible on: http://${iface.address}:${PORT}`);
+			}
+		}
+	}
+});

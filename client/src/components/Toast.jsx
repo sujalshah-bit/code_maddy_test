@@ -46,7 +46,7 @@ const ToastMessage = ({ message, type = 'info', duration = 3000, onClose }) => {
     errors: 'bg-red-500',
     success: 'bg-green-500',
     info: 'bg-blue-500',
-    warning: 'bg-yellow-500',
+    warning: 'bg-yellow-600',
   }[type];
 
   return (
