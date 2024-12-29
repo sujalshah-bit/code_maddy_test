@@ -1,15 +1,7 @@
-import  { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useStore, useStoreActions } from "../editorStore";
 import { getLanguageFromFileExtension } from "../util/util";
-import {
-  Code,
-  Database,
-  File,
-  FileImage,
-  Music,
-  Video,
-  X,
-} from "lucide-react";
+import { Code, Database, File, FileImage, Music, Video, X } from "lucide-react";
 import { useUserStore } from "../stores/userStore";
 import { useSocket } from "../Context/SocketProvider";
 import { SocketEvent } from "../types/socket";
@@ -43,13 +35,11 @@ function Tabs() {
     };
   }, []);
 
-  const serializableOpenFiles = (
-    () =>
-      files.open?.map((fileHandle) => ({
-        name: fileHandle.name,
-        kind: fileHandle.kind,
-      }))
-  );
+  const serializableOpenFiles = () =>
+    files.open?.map((fileHandle) => ({
+      name: fileHandle.name,
+      kind: fileHandle.kind,
+    }));
 
   // const serializableActiveFile = useMemo(
   //   () =>
@@ -60,12 +50,11 @@ function Tabs() {
   // );
 
   const handleTabClick = async (fileHandle) => {
-    
     if (files.active?.name !== fileHandle.name) {
       let text;
       let roomFull;
-      
-      if(users.list.length > 1){
+
+      if (users.list.length > 1) {
         roomFull = true;
       }
 
@@ -76,7 +65,7 @@ function Tabs() {
         setFiles.setCurrent(fileHandle);
         setEditor.setContent(text);
         setEditor.setLanguage(getLanguageFromFileExtension(fileHandle.name));
-        if(roomFull){
+        if (roomFull) {
           socket.emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
             openFiles: serializableOpenFiles(),
             activeFile: { name: fileHandle.name, kind: fileHandle.kind },
@@ -92,7 +81,7 @@ function Tabs() {
             fileHandle.name,
             user.currentRoomId
           );
-  
+
           // Listen for the response
           socket.once(SocketEvent.REQUEST_FILE_CONTENT_RESPONSE, (response) => {
             if (response.success) {
@@ -121,17 +110,20 @@ function Tabs() {
     event.stopPropagation();
     const roomFull = users.list.length > 1;
     console.log("Users list length: ", users.list.length);
-  
-    const newOpenFiles = files.open.filter(file => file.name !== fileHandle.name);
+
+    const newOpenFiles = files.open.filter(
+      (file) => file.name !== fileHandle.name
+    );
     setFiles.setOpen(newOpenFiles);
+    const newActiveFile = newOpenFiles[newOpenFiles.length - 1];
     console.log("Updated open files: ", newOpenFiles);
-  
+
     if (newOpenFiles.length === 0) {
       setFiles.setActive(null);
       setFiles.setCurrent(null);
       setEditor.setContent("");
       setEditor.setLanguage("javascript");
-  
+
       if (roomFull) {
         const eventPayload = {
           removeFile: null,
@@ -140,23 +132,22 @@ function Tabs() {
           ...(user.isSharer ? {} : { isSharer: true }),
         };
         socket.emit(SocketEvent.RESYNC_OPEN_FILES, eventPayload);
+        return;
       }
     } else if (files.active?.name === fileHandle.name) {
-      const newActiveFile = newOpenFiles[newOpenFiles.length - 1];
       if (user.isSharer) {
         await activateFile(newActiveFile);
       }
-      if (roomFull) {
-        socket.emit(SocketEvent.RESYNC_OPEN_FILES, {
-          removeFile: { name: fileHandle.name, kind: fileHandle.kind },
-          activeFile: { name: newActiveFile.name, kind: newActiveFile.kind },
-          roomId: user.currentRoomId,
-          ...(user.isSharer ? {} : { isSharer: true }),
-        });
-      }
+    }
+    if (roomFull) {
+      socket.emit(SocketEvent.RESYNC_OPEN_FILES, {
+        removeFile: { name: fileHandle.name, kind: fileHandle.kind },
+        activeFile: { name: newActiveFile.name, kind: newActiveFile.kind },
+        roomId: user.currentRoomId,
+        ...(user.isSharer ? {} : { isSharer: true }),
+      });
     }
   };
-  
 
   const activateFile = async (fileHandle) => {
     const file = await fileHandle.getFile();

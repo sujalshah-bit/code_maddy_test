@@ -95,6 +95,7 @@ const MenuBar = () => {
 
   const openFolder = async () => {
     try {
+      console.log(window)
       const directoryHandle = await window.showDirectoryPicker();
       const fileTree = await readDirectory(directoryHandle);
       setFiles.setTree(fileTree);
