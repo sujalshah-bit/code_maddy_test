@@ -2,9 +2,11 @@ import { Files, GitBranch, Package, MessagesSquare } from "lucide-react";
 import { useStore, useStoreActions } from "../editorStore";
 // import SearchPanel from "./SearchPanel";
 import ChatPanel from "./ChatPanel";
+import { useAppStore } from "../stores/appStore";
 
 function ActivityBar() {
   const { ui } = useStore();
+  const { chat } = useAppStore()
   const { setUI } = useStoreActions();
 
   const handleFileClick = () => {
@@ -35,9 +37,11 @@ function ActivityBar() {
           }`}
           onClick={handleChatPanelClick}
         >
-           <button className="absolute bottom-5 left-5 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-          {3}
-        </button>
+           {
+            chat.messageCounter> 0 ? <button className="absolute bottom-5 left-5 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+            {chat.messageCounter}
+          </button>:<></>
+           }
           <MessagesSquare className="w-5 h-5" />
         </button>
         <button className="p-2 mb-2 text-gray-400 hover:text-white focus:text-white focus:bg-gray-800 rounded-md">

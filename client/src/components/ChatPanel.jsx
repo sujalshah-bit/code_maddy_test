@@ -119,7 +119,6 @@ const ChatPanel = ({ isVisible, onClose }) => {
       <div className="flex-1 overflow-y-auto " ref={chatContainerRef}>
         {chat.messages.length > 0 ? (
           chat.messages.map((info) => {
-            console.log(info);
             return (
               <div
                 key={parseInt(

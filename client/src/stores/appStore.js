@@ -24,6 +24,7 @@ const createStore = (set, get) => {
    },
    chat: {
     messages: [],
+    messageCounter: 0,
    },
    errors: {
      list: [],
@@ -46,6 +47,7 @@ const createStore = (set, get) => {
      },
      setChat: {
       setMessages: createSetter('chat.messages'),
+      setMessageCounter: createSetter('chat.messageCounter'),
      },
      setErrors: {
        addError: (error) => set((state) => {
