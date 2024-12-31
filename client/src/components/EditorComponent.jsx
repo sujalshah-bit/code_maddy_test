@@ -5,7 +5,7 @@ import Editor from "@monaco-editor/react";
 import { useStore, useStoreActions } from "../editorStore";
 
 import { useEditor } from "../Context/EditorContext";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import useUserActivity from "../hooks/useUserActivity";
 import { SocketEvent } from "../types/socket";
 import { useSocket } from "../Context/SocketProvider";
@@ -15,8 +15,8 @@ import { initializeFloatingName } from "../../tooltip";
 import { FloatingNameWidget } from '../../tooltip';
 import { useDebounce } from "../hooks/useDebounce";
 function EditorComponent() {
-  let widget = null;
-let timeout = null;
+  const typingTimeoutRef = useRef(null);
+  const contentTimeoutRef = useRef(null);
   useUserActivity();
   const { editorRef } = useEditor();
   const { user } = useUserStore();
@@ -45,7 +45,7 @@ let timeout = null;
       cursorPosition: position,
       selection: selection,
     });
-  }, 0); // 100ms delay for typing status
+  }, 100); // 100ms delay for typing status
 
   const handleContentUpdate = useDebounce((newContent) => {
     socket.emit(SocketEvent.FILE_UPDATED, {
@@ -56,7 +56,7 @@ let timeout = null;
       newContent,
       roomId: user?.currentRoomId,
     });
-  }, 0); // 500ms delay for content updates
+  }, 500); // 500ms delay for content updates
 
   const handleTypingPause = useDebounce(() => {
     socket.emit(SocketEvent.TYPING_PAUSE);
@@ -140,86 +140,25 @@ let timeout = null;
     endLineNumber: e.selection.endLineNumber,
     endColumn: e.selection.endColumn,
   });
-  const remoteUser = useAppStore.getState().users.list.filter((u) =>{
-    // console.log(u, user)
-    return u.username !== user.username
-  })
-  // if(remoteUser[0].typing){
-  // }
-  if(!remoteUser[0] ){
-    // console.log("TYPING", remoteUser[0].typing);
-    return;
-  }
-
-  
-
-  // Add the tooltip functionality here
-  if (timeout) {
-    clearTimeout(timeout);
-  }
-
-  // Get current cursor position
-  const position = editor.getPosition();
-  
-  // Remove existing widget if it exists
-  if (widget) {
-    editor.removeOverlayWidget(widget);
-  }
-
-  // Create and add new widget
-  widget = new FloatingNameWidget(remoteUser[0].username);
-  editor.addOverlayWidget(widget);
-
-  // Position the widget above the cursor
-  const coordinates = editor.getScrolledVisiblePosition(position);
-  console.log(coordinates)
-  if (coordinates) {
-    widget.domNode.style.top = `${coordinates.top - 30}px`;
-    widget.domNode.style.left = `${coordinates.left}px`;
-  }
-
-  // Set timeout to remove widget after 3 seconds
-  timeout = setTimeout(() => {
-    if (widget) {
-      editor.removeOverlayWidget(widget);
-      widget = null;
-    }
-  }, 3000);
 });
     
-    // Track content changes in more detail if needed
+    // Content change handling with optimized debouncing
     editor.onDidChangeModelContent((e) => {
-      const changes = e.changes;
-    const newContent = editor.getValue();
-    const position = editor.getPosition();
-    const selection = editor.getSelection();
+      const newContent = editor.getValue();
+      
+      socket.emit(SocketEvent.TYPING_START, { cursorPosition });
+      socket.emit(SocketEvent.FILE_UPDATED, { 
+          file: { name: files.active.name, kind: files.active.kind },
+          newContent,
+          roomId: user.currentRoomId,
+      });
+      
+      clearTimeout(timeOut);
+      setTimeOut(setTimeout(() => socket.emit(SocketEvent.TYPING_PAUSE), 1000));
+      
+      setEditor.setContent(newContent);
+  });
 
-      // console.log(remoteUser)
-      // You can access detailed change information here:
-      // changes[].range: The range that got replaced
-      // changes[].text: The new text for the range
-      // changes[].rangeLength: The length of the range that got replaced
-
-      // setEditor.setContent(newContent);
-       // Call debounced functions
-    handleTypingStart(changes, position, selection);
-    handleContentUpdate(newContent);
-    handleTypingPause();
-      // clearTimeout(timeOut);
-
-      // const newTimeOut = setTimeout(
-      //   () => socket.emit(SocketEvent.TYPING_PAUSE),
-      //   2000
-      // );
-      // setTimeOut(newTimeOut);
-      // You can also emit these changes to a server or other components
-      // console.log("Content changed:", {
-      //   changes,
-      //   newContent,
-      //   cursorPosition: editor.getPosition(),
-      //   selection: editor.getSelection(),
-      // });
-    });
 
     monaco.editor.setTheme("dark-theme");
 

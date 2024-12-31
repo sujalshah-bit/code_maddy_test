@@ -15,7 +15,7 @@ function useChat() {
       console.log("RECEIEVED MESSAGE:", { message, user, time });
       if(!ui.chatPanelVisible){ 
         setChat.setMessageCounter((prevValue)=> prevValue+1);
-        const notificationSound = new Audio("./public/sound/raw_msg_sound.mp4");
+        const notificationSound = new Audio("/sound/raw_msg_sound.mp4");
       notificationSound.play();
       }
       setChat.setMessages((prevMessages) => [
