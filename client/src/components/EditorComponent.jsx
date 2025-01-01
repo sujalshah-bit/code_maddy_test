@@ -144,8 +144,9 @@ function EditorComponent() {
     
     // Content change handling with optimized debouncing
     editor.onDidChangeModelContent((e) => {
+      console.log('changed')
       const newContent = editor.getValue();
-      
+      setEditor.setContent(newContent);
       socket.emit(SocketEvent.TYPING_START, { cursorPosition });
       socket.emit(SocketEvent.FILE_UPDATED, { 
           file: { name: files.active.name, kind: files.active.kind },
@@ -156,7 +157,6 @@ function EditorComponent() {
       clearTimeout(timeOut);
       setTimeOut(setTimeout(() => socket.emit(SocketEvent.TYPING_PAUSE), 1000));
       
-      setEditor.setContent(newContent);
   });
 
 

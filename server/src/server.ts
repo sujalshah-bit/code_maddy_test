@@ -105,7 +105,7 @@ io.on("connection", (socket) => {
 		SocketEvent.RESYNC_FILE_STRUCTURE,
 		({ openFiles, activeFile,text, roomId, isSharer }) => {
 			console.log({roomId})
-			console.log('RESYNCING file structure:', openFiles, activeFile);
+			console.log('RESYNCING file structure:', openFiles, activeFile, roomId);
 			const users = getUsersInRoom(roomId);
 			const anotherUser = users.filter((user) => user.socketId !== socket.id);
 			io.to(anotherUser[0].socketId).emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
@@ -158,6 +158,7 @@ io.on("connection", (socket) => {
 		(response) => {
 			const users = getUsersInRoom(response.roomId);
 			const anotherUser = users.filter((user) => user.socketId !== socket.id);
+			console.log(`${response.fileHandle.name} is send to user from server`,anotherUser)
 			// Send the response back to the requesting user
 			io.to(anotherUser[0].socketId).emit(SocketEvent.REQUEST_FILE_CONTENT_RESPONSE, response);
 		}

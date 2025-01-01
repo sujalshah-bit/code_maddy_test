@@ -238,13 +238,14 @@ export const FileProvider = ({ children }) => {
           }
         }
       } else {
+        console.log(data.openFiles)
         setFiles.setOpen(data.openFiles);
         // console.log(data.openFiles);
-        // console.log(user);
+        console.log(useUserStore.getState().user.currentRoomId);
         socket.emit(
           SocketEvent.REQUEST_FILE_CONTENT,
           data.activeFile.name,
-          user.currentRoomId
+          useUserStore.getState().user.currentRoomId
         );
 
         // Listen for the response
@@ -263,7 +264,7 @@ export const FileProvider = ({ children }) => {
         setEditor.setContent(data.text);
       }
     },
-    [files.open, setEditor, setFiles, socket, user]
+    [files.open, setEditor, setFiles, socket]
   );
 
   const handleFileRequestFromPeer = useCallback(
@@ -283,6 +284,7 @@ export const FileProvider = ({ children }) => {
           text,
           success: true,
         });
+        console.log(`${requestedFile.name} send to server`)
       } else {
         socket.emit(SocketEvent.SEND_FILE_CONTENT, {
           fileHandle: { name: null, kind: null },

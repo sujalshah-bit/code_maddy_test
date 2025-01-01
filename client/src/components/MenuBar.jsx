@@ -4,12 +4,20 @@ import { getLanguageFromFileExtension } from "../util/util";
 import { useStoreActions, useStore } from "../editorStore";
 import { useEditor } from "../Context/EditorContext";
 import { useUserStore } from "../stores/userStore";
+import { SocketEvent } from "../types/socket";
+import { useSocket } from "../Context/SocketProvider";
+import { useAppStore } from "../stores/appStore";
 
 const MenuBar = () => {
   const { editorRef } = useEditor();
   const { files } = useStore();
-  const { actions: { setUser } } = useUserStore();
+  const { user, actions: { setUser } } = useUserStore();
+  const { users } = useAppStore();
+  const { socket } = useSocket();
   const { setFiles, setEditor, setUI } = useStoreActions();
+
+ 
+
   const openFile = async () => {
     try {
       const [fileHandle] = await window.showOpenFilePicker();
@@ -17,22 +25,32 @@ const MenuBar = () => {
       const text = await file.text();
       const language = getLanguageFromFileExtension(file.name);
 
+      
       setFiles.setCurrent(fileHandle);
       setEditor.setContent(text);
       setEditor.setLanguage(language);
       setFiles.setActive(fileHandle);
-
+      
       setUser.setIsSharer(true);
-
+      
       setFiles.setOpen((prevOpenFiles) => {
         if (!prevOpenFiles.some((f) => f.name === fileHandle.name)) {
           return [...prevOpenFiles, fileHandle];
         }
         return prevOpenFiles;
       });
-
+      
       if (editorRef.current) {
         editorRef.current.setValue(text);
+      }
+      const roomFull = users.list.length > 1;
+
+      if (roomFull) {
+        socket.emit(SocketEvent.RESYNC_FILE_STRUCTURE, {
+          openFiles: [{ name: fileHandle.name, kind: fileHandle.kind }],
+          activeFile: { name: fileHandle.name, kind: fileHandle.kind },
+          roomId: user.currentRoomId,
+        });
       }
     } catch (error) {
       console.error("Error opening file:", error);

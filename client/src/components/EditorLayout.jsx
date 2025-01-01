@@ -9,6 +9,7 @@ import ActivityBar from "./ActivityBar";
 import Tabs from "./Tab";
 import { useAppStore } from "../stores/appStore";
 import useChat from "../hooks/useChat";
+import EditorComponentt from "./EditorComponett";
 
 const EditorLayout = () => {
   const navigate = useNavigate();
@@ -31,7 +32,8 @@ const EditorLayout = () => {
           <Sidebar />
           <div className="flex-1 flex flex-col overflow-hidden min-w-0 bg-gray-900">
             <Tabs />
-            <EditorComponent />
+            {/* <EditorComponent /> */}
+            <EditorComponentt/>
           </div>
         </div>
       </div>
