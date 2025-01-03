@@ -13,7 +13,7 @@ function useChat() {
   const handleChatMessages = useCallback(
     ({ message, user, time }) => {
       console.log("RECEIEVED MESSAGE:", { message, user, time });
-      if(!ui.chatPanelVisible){ 
+      if(!ui.panel.chat){ 
         setChat.setMessageCounter((prevValue)=> prevValue+1);
         const notificationSound = new Audio("/sound/raw_msg_sound.mp4");
       notificationSound.play();
@@ -23,14 +23,14 @@ function useChat() {
         { message, user, time },
       ]);
     },
-    [setChat, ui.chatPanelVisible]
+    [setChat, ui.panel.chat]
   );
 
   useEffect(()=>{
-    if(ui.chatPanelVisible){
+    if(ui.panel.chat){
       setChat.setMessageCounter(0)
     }
-  },[setChat, ui.chatPanelVisible])
+  },[setChat , ui.panel.chat])
 
   useEffect(() => {
     socket.on(SocketEvent.RECEIVE_MESSAGE, handleChatMessages);

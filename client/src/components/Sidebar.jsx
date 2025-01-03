@@ -541,14 +541,14 @@ const serializableActiveFile = useMemo(() =>
   }, [isResizing]);
 
 
-  if (!ui.sidebarVisible) return null;
+  if (!ui.panel.folder) return null;
 
   return (
     <div
       ref={sidebarRef}
       style={{ width: sidebarWidth }}
       className={`h-full bg-gray-900 text-white flex flex-col overflow-hidden relative transition-all duration-200 border border-gray-800 ${
-        ui.sidebarVisible ? "translate-x-0" : "-translate-x-full"
+        ui.panel.folder ? "translate-x-0" : "-translate-x-full"
       }`}
     >
       <div className="p-4 flex-1 overflow-y-auto scrollbar-thin">

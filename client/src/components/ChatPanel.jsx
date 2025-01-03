@@ -9,16 +9,19 @@ import {
   useAppStore,
   useNotificationActions,
 } from "../stores/appStore";
+import { useStore, useStoreActions } from "../editorStore";
 
-const ChatPanel = ({ isVisible, onClose }) => {
+const ChatPanel = () => {
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(290);
 
   const [messageInput, setmessageInput] = useState("");
   const { socket } = useSocket();
+  const { ui } = useStore();
   const { user } = useUserStore();
   const { users } = useAppStore();
   const { setChat } = useAppActions();
+  const { setUI } = useStoreActions();
   const { addNotification } = useNotificationActions();
   const { chat } = useAppStore();
   const messagesEndRef = useRef(null);
@@ -31,10 +34,10 @@ const ChatPanel = ({ isVisible, onClose }) => {
   };
 
   useEffect(() => {
-    if (isVisible) {
+    if (ui.panel.chat) {
       scrollToBottom();
     }
-  }, [isVisible, chat.messages]);
+  }, [ chat.messages, ui.panel.chat]);
 
   const handleMessageSend = useCallback(() => {
     if (!messageInput.trim()) return;
@@ -97,7 +100,7 @@ const ChatPanel = ({ isVisible, onClose }) => {
     };
   }, [isResizing]);
 
-  if (!isVisible) return null;
+  if (!ui.panel.chat) return null;
 
   return (
     <div
@@ -108,7 +111,7 @@ const ChatPanel = ({ isVisible, onClose }) => {
       <div className="flex items-center justify-between p-4 border-b border-gray-800">
         <h2 className="text-gray-200 font-medium text-xl">Chat</h2>
         <button
-          onClick={onClose}
+          onClick={()=>setUI.setPanel("chat", false)}
           className="text-gray-400 hover:text-gray-200 transition-colors"
         >
           <X className="w-5 h-5" />

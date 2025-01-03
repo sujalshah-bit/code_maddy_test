@@ -2,15 +2,14 @@
 
 import { getLanguageFromFileExtension } from "../util/util";
 import { useStoreActions, useStore } from "../editorStore";
-import { useEditor } from "../Context/EditorContext";
 import { useUserStore } from "../stores/userStore";
 import { SocketEvent } from "../types/socket";
 import { useSocket } from "../Context/SocketProvider";
-import { useAppStore } from "../stores/appStore";
+import { useAppStore, useNotificationActions } from "../stores/appStore";
 
 const MenuBar = () => {
-  const { editorRef } = useEditor();
-  const { files } = useStore();
+  const { addNotification } = useNotificationActions();
+  const { files, editor } = useStore();
   const { user, actions: { setUser } } = useUserStore();
   const { users } = useAppStore();
   const { socket } = useSocket();
@@ -39,10 +38,6 @@ const MenuBar = () => {
         }
         return prevOpenFiles;
       });
-      
-      if (editorRef.current) {
-        editorRef.current.setValue(text);
-      }
       const roomFull = users.list.length > 1;
 
       if (roomFull) {
@@ -63,8 +58,9 @@ const MenuBar = () => {
     }
     if (files.current) {
       const writable = await files.current.createWritable();
-      await writable.write(editorRef.current.getValue());
+      await writable.write(editor.content);
       await writable.close();
+      addNotification(`${files.current.name} saved`, "success", 850)
     } else {
       saveFileAs();
     }
@@ -77,7 +73,7 @@ const MenuBar = () => {
       }
       const newFileHandle = await window.showSaveFilePicker();
       const writable = await newFileHandle.createWritable();
-      await writable.write(editorRef.current.getValue());
+      await writable.write(editor.content);
       await writable.close();
       setFiles.setCurrent(newFileHandle);
     } catch (error) {
@@ -119,8 +115,7 @@ const MenuBar = () => {
       setFiles.setTree(fileTree);
       setEditor.setDirectoryHandle(directoryHandle);
       setEditor.setContent(null);
-      setUI.setSidebarVisible(true);
-      setUI.setChatPanelVisible(false);
+      setUI.setPanel("folder",true);
       setFiles.setOpen([]);
       setUser.setIsSharer(true);
     } catch (error) {
