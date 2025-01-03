@@ -3,7 +3,7 @@
 import { Flex, Text } from "@chakra-ui/react";
 import { useStore, useStoreActions } from "../editorStore";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useUserActivity from "../hooks/useUserActivity";
 import { SocketEvent } from "../types/socket";
 import { useSocket } from "../Context/SocketProvider";
@@ -14,6 +14,9 @@ import { loadLanguage } from "@uiw/codemirror-extensions-langs";
 import CodeMirror, { EditorView } from "@uiw/react-codemirror";
 import useResponsive from "../hooks/useResponsive";
 import themes from "../util/themes";
+import usePageEvents from "./usePageEvents";
+import { cursorTooltipBaseTheme, tooltipField } from "./tooltip";
+import { useAppStore } from "../stores/appStore";
 function EditorComponentt() {
   useUserActivity();
   const { user } = useUserStore();
@@ -22,12 +25,13 @@ function EditorComponentt() {
   const { viewHeight, minHeightReached } = useResponsive();
   const { socket } = useSocket();
   const [timeOut, setTimeOut] = useState(setTimeout(() => {}, 0));
-  //   const remoteUser = (
-  //     () => useAppStore.getState().users.list.filter((u) =>{
-  //       console.log(u, user)
-  //       return u.username !== user.username
-  //     })
-  // )
+    // const remoteUser = useMemo(()=>{
+    //   useAppStore.getState().users.list.filter((u) =>{
+    //     console.log(u, user)
+    //     return u.username !== user.username
+    //   })
+    // },[user])
+  
   const [extensions, setExtensions] = useState([]);
 
   const onCodeChange = (code, view) => {
@@ -46,29 +50,38 @@ function EditorComponentt() {
     setTimeOut(setTimeout(() => socket.emit(SocketEvent.TYPING_PAUSE), 1000));
   };
 
+  usePageEvents();
   useEffect(() => {
+    // const usersList = useAppStore.getState().users.list
+    // const remoteUser =usersList.filter((u) =>{
+    //   console.log(u, )
+    //   return u.username !== user.username
+    // })
+
     let extensions = [color, hyperLink];
-    
+
     if (editor.settings.lineWrapping) {
       extensions.push(EditorView.lineWrapping);
     }
-    
+
     const langExt = loadLanguage(editor.language.toLowerCase());
     if (langExt) {
       extensions.push(langExt);
     }
-    
+
     setExtensions(extensions);
   }, [editor.language, editor.settings.lineWrapping]);
-  
+
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.altKey && event.key === "z") {
         event.preventDefault();
-        actions.setEditor.setSettings.setLineWrapping(!editor.settings.lineWrapping);
+        actions.setEditor.setSettings.setLineWrapping(
+          !editor.settings.lineWrapping
+        );
       }
     };
-  
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [actions.setEditor.setSettings, editor.settings.lineWrapping]);
@@ -91,7 +104,7 @@ function EditorComponentt() {
             minHeight="100%"
             maxWidth="100vw"
             style={{
-              fontSize: "16px",
+              fontSize: editor.settings.fontSize,
               height: viewHeight,
               position: "relative",
             }}

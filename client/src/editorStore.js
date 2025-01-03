@@ -33,7 +33,9 @@ const createStore = (set, get) => {
       content: null,
       settings: {
         theme: localStorage.getItem('editorTheme') ?? 'github-dark',
+        fontSize: localStorage.getItem('fontSize') ?? 16,
         lineWrapping: localStorage.getItem('lineWrapping') !== 'false',
+        isZoom: localStorage.getItem('isZoom'),
       }
     },
     ui: {
@@ -61,27 +63,35 @@ const createStore = (set, get) => {
       setEditor: {
         setLanguage: createSetter('editor.language'),
         setContent: createSetter('editor.content'),
-        setTheme: (value)=>{
-          console.log('suja',{value})
-          localStorage.setItem('editorTheme', value);
-          set((state) => {
-            state.editor.settings.theme = value;
-          });
-        },
         setDirectoryHandle: createSetter('editor.directoryHandle'),
         setSettings: {
+          setTheme: (value) => {
+            console.log('suja', { value })
+            localStorage.setItem('editorTheme', value);
+            set((state) => {
+              state.editor.settings.theme = value;
+            });
+          },
           setLineWrapping: (value) => {
             localStorage.setItem('lineWrapping', value);
             set((state) => {
               state.editor.settings.lineWrapping = value;
             });
           },
+          setFontSize: (value) => {
+            localStorage.setItem("fontSize", value)
+            set((state) => { state.editor.settings.fontSize = value })
+          },
+          setIsZoom: (value) => {
+            localStorage.setItem("isZoom", value)
+            set((state) => { state.editor.settings.isZoom = value })
+          }
         },
       },
       setUI: {
         setPanel: ((prop, value) => {
           set((state) => {
-            
+
             state.ui.panel[prop] = value
             if (prop === "folder") {
               state.ui.panel.settings = false

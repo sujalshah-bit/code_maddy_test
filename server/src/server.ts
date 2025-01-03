@@ -189,7 +189,7 @@ io.on("connection", (socket) => {
 		socket.broadcast.to(roomId).emit(SocketEvent.USER_ONLINE, { socketId })
 	})
 
-	socket.on(SocketEvent.TYPING_START, ({ changes, cursorPosition, selection }) => {
+	socket.on(SocketEvent.TYPING_START, ({  cursorPosition }) => {
 		userSocketMap = userSocketMap.map((user) => {
 			if (user.socketId === socket.id) {
 				return { ...user, typing: true, cursorPosition }
@@ -216,7 +216,7 @@ io.on("connection", (socket) => {
 	})
 
 	socket.on(SocketEvent.FILE_UPDATED, ({ file, newContent, roomId }) => {
-		console.log('File updated:', file, newContent);
+		console.log('File updated:', file, newContent, roomId);
 		// Handle the file update logic here
 		const users = getUsersInRoom(roomId);
 		const anotherUser = users.filter((user) => user.socketId !== socket.id);

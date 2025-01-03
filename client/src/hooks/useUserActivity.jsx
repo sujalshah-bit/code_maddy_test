@@ -55,6 +55,7 @@ function useUserActivity() {
             setUsers.setList(() => {
                 return useAppStore.getState().users.list.map((u) => {
                     if (u.socketId === user.socketId) {
+                        console.log(user)
                         return user
                     }
                     return u

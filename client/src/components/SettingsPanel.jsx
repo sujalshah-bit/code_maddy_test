@@ -12,9 +12,6 @@ const SettingsPanel = () => {
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(290);
   
-  const [isToggled, setIsToggled] = useState(false);
-
-  
 
 //   const { socket } = useSocket();
   const { ui, editor } = useStore();
@@ -52,6 +49,7 @@ const SettingsPanel = () => {
     };
   }, [isResizing]);
 
+
   if (!ui.panel.settings) return null;
 
   return (
@@ -88,7 +86,7 @@ const SettingsPanel = () => {
       className="p-2 rounded-md border border-gray-300 bg-gray-900  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all ease-in-out w-full"
       name="theme_dropdown"
       id="theme_dropdown"
-      onClick={(e) => setEditor.setTheme(e.target.value)}  
+      onClick={(e) => setEditor.setSettings.setTheme(e.target.value)}  
     >
       <option value={editor.settings.theme}>{editor.settings.theme}</option>
       {
@@ -110,6 +108,21 @@ const SettingsPanel = () => {
         <span
           className={`absolute left-1 top-1 h-4 w-4 bg-white rounded-full transition-transform ${
             editor.settings.lineWrapping ? "translate-x-6" : "translate-x-0"
+          }`}
+        ></span>
+      </button>
+  </div>
+  <div className=" flex items-center ml-3 gap-3 my-3">
+    <label htmlFor="">mouse wheel zoom</label>
+    <button
+        onClick={()=> setEditor.setSettings.setIsZoom(!editor.settings.isZoom)}
+        className={`relative inline-flex items-center h-6 w-12 rounded-full transition-colors ${
+            editor.settings.isZoom ? "bg-blue-500" : "bg-gray-300"
+        }`}
+      >
+        <span
+          className={`absolute left-1 top-1 h-4 w-4 bg-white rounded-full transition-transform ${
+            editor.settings.isZoom ? "translate-x-6" : "translate-x-0"
           }`}
         ></span>
       </button>
