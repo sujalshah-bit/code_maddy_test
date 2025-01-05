@@ -19,7 +19,7 @@ const ChatPanel = () => {
   const { socket } = useSocket();
   const { ui } = useStore();
   const { user } = useUserStore();
-  const { users } = useAppStore();
+  const { users, dimension, isMobileMenuOpen } = useAppStore();
   const { setChat } = useAppActions();
   const { setUI } = useStoreActions();
   const { addNotification } = useNotificationActions();
@@ -27,7 +27,7 @@ const ChatPanel = () => {
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const MIN_WIDTH = 290;
-  const MAX_WIDTH = 480;
+  const MAX_WIDTH = 768;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -104,7 +104,7 @@ const ChatPanel = () => {
 
   return (
     <div
-      style={{ width: sidebarWidth }}
+    style={(isMobileMenuOpen && dimension.isMobile)? { width: dimension.width } :{ width: sidebarWidth }}
       className="relative h-full bg-gray-900 border border-gray-800 flex flex-col"
     >
       {/* Header with close button */}

@@ -16,12 +16,12 @@ const SettingsPanel = () => {
 //   const { socket } = useSocket();
   const { ui, editor } = useStore();
   const { user } = useUserStore();
-  const { users } = useAppStore();
+  const { users, dimension, isMobileMenuOpen } = useAppStore();
 //   const { setChat } = useAppActions();
   const { setUI, setEditor } = useStoreActions();
 //   const { addNotification } = useNotificationActions();
   const MIN_WIDTH = 290;
-  const MAX_WIDTH = 480;
+  const MAX_WIDTH = 768;
 
   const handleToggle = () => {
    
@@ -54,7 +54,7 @@ const SettingsPanel = () => {
 
   return (
     <div
-      style={{ width: sidebarWidth }}
+    style={(isMobileMenuOpen && dimension.isMobile)? { width: dimension.width } :{ width: sidebarWidth }}
       className="relative h-full bg-gray-900 border border-gray-800 flex flex-col"
     >
       {/* Header with close button */}

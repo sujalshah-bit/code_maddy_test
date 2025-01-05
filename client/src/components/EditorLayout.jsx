@@ -14,11 +14,13 @@ import EditorComponentt from "./EditorComponett";
 const EditorLayout = () => {
   const navigate = useNavigate();
   const { username, currentRoomId } = useUserStore((state) => state.user);
-  const { notifications } = useAppStore();
+  const { notifications, dimension, isMobileMenuOpen } = useAppStore();
   useChat();
+  // console.log(isMobileMenuOpen);
+  console.log("isMobileMenuOpen");
   useEffect(() => {
     if (!username || !currentRoomId || notifications.errors.length > 0) {
-      console.log(username,currentRoomId);
+      console.log(username, currentRoomId);
       navigate("/");
     }
   }, [username, currentRoomId, navigate, notifications.errors.length]);
@@ -28,13 +30,33 @@ const EditorLayout = () => {
       <div className="h-screen flex flex-col overflow-hidden">
         <MenuBar />
         <div className="flex-1 flex overflow-hidden">
-          <ActivityBar />
-          <Sidebar />
-          <div className="flex-1 flex flex-col overflow-hidden min-w-0 bg-gray-900">
-            <Tabs />
-            {/* <EditorComponent /> */}
-            <EditorComponentt/>
-          </div>
+          {dimension.isMobile ? (
+            <>
+              {isMobileMenuOpen ? (
+                <>
+                <ActivityBar />
+                  <Sidebar />
+                  
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col overflow-hidden min-w-0 bg-gray-900">
+                  <Tabs />
+                  {/* <EditorComponent /> */}
+                  <EditorComponentt />
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <ActivityBar />
+              <Sidebar />
+              <div className="flex-1 flex flex-col overflow-hidden min-w-0 bg-gray-900">
+                <Tabs />
+                {/* <EditorComponent /> */}
+                <EditorComponentt />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </EditorProvider>

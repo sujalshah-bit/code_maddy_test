@@ -1,25 +1,20 @@
-import { useEffect, useState } from "react"
+import { useEffect } from "react";
+import { useAppStore } from "../stores/appStore";
 
 function useWindowDimensions() {
-    const [windowDimensions, setWindowDimensions] = useState({
-        width: window.innerWidth,
-        height: window.innerHeight,
-    })
-    const isMobile = windowDimensions.width < 768
+  const { dimension, actions } = useAppStore();
 
-    useEffect(() => {
-        const updateWindowDimensions = () => {
-            setWindowDimensions({
-                width: window.innerWidth,
-                height: window.innerHeight,
-            })
-        }
+  actions.setDimension.setIsMobile(dimension.width < 768);
 
-        window.addEventListener("resize", updateWindowDimensions)
-        return () => window.removeEventListener("resize", updateWindowDimensions)
-    }, [])
+  useEffect(() => {
+    const updateWindowDimensions = () => {
+      actions.setDimension.setWidth(window.innerWidth);
+      actions.setDimension.setHeight(window.innerHeight);
+    };
 
-    return { ...windowDimensions, isMobile }
+    window.addEventListener("resize", updateWindowDimensions);
+    return () => window.removeEventListener("resize", updateWindowDimensions);
+  }, [actions.setDimension]);
 }
 
-export default useWindowDimensions
+export default useWindowDimensions;

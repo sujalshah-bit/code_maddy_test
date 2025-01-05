@@ -12,6 +12,8 @@ export const getLanguageFromFileExtension = (filename) => {
         return 'python';
       case 'rb':
         return 'ruby';
+      case 'yml':
+        return 'yaml';
       default:
         return extension;
     }

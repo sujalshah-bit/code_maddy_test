@@ -20,12 +20,13 @@ import { useSocket } from "../Context/SocketProvider";
 import { SocketEvent } from "../types/socket";
 import { useUserStore } from "../stores/userStore";
 import { useAppStore } from "../stores/appStore";
+import useResponsive from "../hooks/useResponsive";
 
 function Sidebar() {
   const { files, folders, editor, ui } = useStore();
   const { socket } = useSocket();
   const { user } = useUserStore();
-  const { users } = useAppStore();
+  const { users, isMobileMenuOpen, dimension } = useAppStore();
   const { setFiles, setEditor, setFolders } = useStoreActions();
   const [parentFolder, setParentFolder] = useState(null);
   const [rootHandler, setRootHandler] = useState(null);
@@ -36,10 +37,11 @@ function Sidebar() {
     node: null, // to track which node was right-clicked
   });
   const [isResizing, setIsResizing] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(256); // 16rem = 256px
+  const [sidebarWidth, setSidebarWidth] = useState(isMobileMenuOpen? dimension.width :256); // 16rem = 256px
   const sidebarRef = useRef(null);
-  const MIN_WIDTH = 160; // 10rem
-  const MAX_WIDTH = 480; // 30rem
+  // const MIN_WIDTH = 160; // 10rem
+  const MIN_WIDTH = 290;
+  const MAX_WIDTH = 768;
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop()?.toLowerCase();
@@ -437,7 +439,7 @@ const serializableActiveFile = useMemo(() =>
           >
             <div
               data-file-name={node.name}
-              className={`flex items-center space-x-1 cursor-pointer group
+              className={`target:border border-gray-700 flex items-center space-x-1 cursor-pointer group
                 ${isCurrentFile && files.open.length > 1 ? 'bg-blue-500/20 text-blue-400' : 'hover:bg-gray-800'}
                 transition-colors duration-150 ease-in-out`}
               onClick={(e) => {
@@ -468,13 +470,13 @@ const serializableActiveFile = useMemo(() =>
                 <>
                   {folders.expanded[node.name] ? (
                     <>
-                      <ChevronDown className="w-4 h-4 text-gray-500 group-hover:text-gray-400" />
-                      <FolderOpen className="w-4 h-4 text-blue-400 group-hover:text-blue-300" />
+                      <ChevronDown className="w-4 h-4 text-gray-500 group-hover:text-gray-400 flex-shrink-0" />
+                      <FolderOpen className="w-4 h-4 text-blue-400 group-hover:text-blue-300 flex-shrink-0" />
                     </>
                   ) : (
                     <>
-                      <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-gray-400" />
-                      <Folder className="w-4 h-4 text-blue-400 group-hover:text-blue-300" />
+                      <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-gray-400 flex-shrink-0" />
+                      <Folder className="w-4 h-4 text-blue-400 group-hover:text-blue-300 flex-shrink-0" />
                     </>
                   )}
                 </>
@@ -516,9 +518,9 @@ const serializableActiveFile = useMemo(() =>
   }, [contextMenu]);
 
   useEffect(() => {
+    if (!isResizing) return;
     const handleMouseMove = (e) => {
-      if (!isResizing) return;
-
+      e.preventDefault();
       const newWidth = e.clientX;
       if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
         setSidebarWidth(newWidth);
@@ -529,10 +531,10 @@ const serializableActiveFile = useMemo(() =>
       setIsResizing(false);
     };
 
-    if (isResizing) {
+    
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
-    }
+
 
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
@@ -546,13 +548,13 @@ const serializableActiveFile = useMemo(() =>
   return (
     <div
       ref={sidebarRef}
-      style={{ width: sidebarWidth }}
-      className={`h-full bg-gray-900 text-white flex flex-col overflow-hidden relative transition-all duration-200 border border-gray-800 ${
+      style={(isMobileMenuOpen && dimension.isMobile)? { width: dimension.width } :{ width: sidebarWidth }}
+      className={`h-full bg-gray-900 text-white flex flex-col overflow-hidden relative border border-gray-800 ${
         ui.panel.folder ? "translate-x-0" : "-translate-x-full"
       }`}
     >
       <div className="p-4 flex-1 overflow-y-auto scrollbar-thin">
-        <h2 className="text-xl font-semibold mb-4 flex items-center justify-between">
+        <h2 className="text-xl border-2 px-1 border-gray-800 font-semibold mb-4 flex items-center justify-between">
           <span className="truncate">Project Explorer</span>
           {editor.directoryHandle && (
             <div className="flex space-x-1 ml-2 flex-shrink-0">
@@ -600,7 +602,7 @@ const serializableActiveFile = useMemo(() =>
                 isRootNode: true,
               });
             }}
-            className="cursor-pointer "
+            className="cursor-pointer text-lg font-medium"
           >
             {editor.directoryHandle.name}
           </h2>
@@ -619,7 +621,7 @@ const serializableActiveFile = useMemo(() =>
       </div>
 
       <div
-        className="absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-blue-500 opacity-0 hover:opacity-100 "
+        className="absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-blue-500 transition-opacity duration-200 opacity-0 hover:opacity-100"
         onMouseDown={(e) => {
           e.preventDefault();
           setIsResizing(true);

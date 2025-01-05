@@ -3,8 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from "./components/LandingPage.jsx";
 import EditorLayout from "./components/EditorLayout.jsx";
 import Toast from './components/Toast';
+import useWindowDimensions from "./hooks/useWindowDimensions.jsx";
 
 function App() {
+  useWindowDimensions()
   return (
     <BrowserRouter>
       <Routes>
