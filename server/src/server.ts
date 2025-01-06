@@ -1,10 +1,11 @@
-import express, { Response, Request } from "express";
+import express, { Response, Request, NextFunction } from "express";
 import dotenv from "dotenv";
 import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
 import { SocketEvent, SocketId } from "./types/socket";
 import { User, USER_CONNECTION_STATUS } from "./types/user";
+import { isValidUUID, validateApiKey } from "./middleware/middleware";
 
 dotenv.config();
 
@@ -19,6 +20,12 @@ let userSocketMap: User[] = []
 // Function to get all users in a room
 function getUsersInRoom(roomId: string): User[] {
 	return userSocketMap.filter((user) => user.roomId == roomId)
+}
+
+// Remove the user
+function removeRoom(roomId: string): User[] {
+	userSocketMap =  userSocketMap.filter((user) => user.roomId !== roomId)
+	return userSocketMap;
 }
 
 function getTotalUsersInRoom(roomId: string): number {
@@ -275,6 +282,18 @@ app.get("/rooms", (req: Request, res: Response) => {
 		});
 		return acc;
 	}, {} as Record<string, Partial<User>[]>);
+
+	res.json({
+		totalRooms: Object.keys(rooms).length,
+		rooms: rooms
+	});
+});
+
+// endpoint for maintaining the room
+app.post("/remove-room/:id", validateApiKey ,isValidUUID ,(req: Request, res: Response) => {
+	const roomId = req.params.id;
+
+	const rooms = removeRoom(roomId);
 
 	res.json({
 		totalRooms: Object.keys(rooms).length,
