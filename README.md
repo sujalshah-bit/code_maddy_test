@@ -4,10 +4,11 @@
   Developed a prototype real-time collaborative code editor that enables two users to live edit files and communicate via an integrated chat feature.
 
 **Demo:**
-<video width="700" controls>
-  <source src="https://drive.google.com/file/d/1lG3JH13qpYiKuunK9iMSTHW6eCEy-4C4/view?t=4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+
+
+https://github.com/user-attachments/assets/17140ad1-ea3d-4b8b-bfb9-d7a6f7ceda00
+
+
 
 - **Key Features:**  
   - **File & Folder Management:** Users can open and navigate folders and files within the editor.  
