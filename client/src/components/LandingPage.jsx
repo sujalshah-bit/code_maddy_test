@@ -1,47 +1,58 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
-import { useUserActions } from '../stores/userStore';
-import { useSocket } from '../Context/SocketProvider';
-import {  useAppStore } from '../stores/appStore';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { v4 as uuidv4 } from "uuid";
+import { useUserActions } from "../stores/userStore";
+import { useSocket } from "../Context/SocketProvider";
+import { useAppStore } from "../stores/appStore";
+import InfoModal from "./InfoModal";
 
 const LandingPage = () => {
-  const [roomId, setRoomId] = useState('');
-  const [username, setUsername] = useState('');
+  const [roomId, setRoomId] = useState("");
+  const [username, setUsername] = useState("");
   const [formErrors, setFormErrors] = useState({});
   const navigate = useNavigate();
   const { setUser } = useUserActions();
   const { joinRoom } = useSocket();
+  const [isInfoSeen, setIsInfoSeen] = useState(false);
   const { notifications } = useAppStore();
   // Load saved username if exists
   useEffect(() => {
-    const savedUsername = localStorage.getItem('username');
+    const savedUsername = localStorage.getItem("username");
     if (savedUsername) {
       setUsername(savedUsername);
     }
   }, []);
+  const onClose = () => {
+    localStorage.setItem("InfoModalShown", true);
+    setIsInfoSeen(true)
+  };
 
   const validateForm = () => {
     const newErrors = {};
 
     // Username validation
     if (!username) {
-      newErrors.username = 'Username is required';
+      newErrors.username = "Username is required";
     } else if (username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters long';
+      newErrors.username = "Username must be at least 3 characters long";
     } else if (username.length > 20) {
-      newErrors.username = 'Username must be less than 20 characters';
+      newErrors.username = "Username must be less than 20 characters";
     } else if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-      newErrors.username = 'Username can only contain letters, numbers, underscores, and hyphens';
+      newErrors.username =
+        "Username can only contain letters, numbers, underscores, and hyphens";
     }
 
     // Room ID validation
     if (!roomId) {
-      newErrors.roomId = 'Room ID is required';
+      newErrors.roomId = "Room ID is required";
     } else if (roomId.length !== 36) {
-      newErrors.roomId = 'Invalid Room ID format';
-    } else if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(roomId)) {
-      newErrors.roomId = 'Invalid UUID format';
+      newErrors.roomId = "Invalid Room ID format";
+    } else if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        roomId
+      )
+    ) {
+      newErrors.roomId = "Invalid UUID format";
     }
 
     setFormErrors(newErrors);
@@ -50,7 +61,7 @@ const LandingPage = () => {
 
   const handleJoinRoom = (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setUser.setUsername(username);
@@ -77,8 +88,8 @@ const LandingPage = () => {
 
         <form onSubmit={handleJoinRoom} className="space-y-6">
           <div>
-            <label 
-              htmlFor="roomId" 
+            <label
+              htmlFor="roomId"
               className="block text-sm font-medium text-gray-300 mb-2"
             >
               Room ID
@@ -95,7 +106,7 @@ const LandingPage = () => {
                   }
                 }}
                 className={`w-full px-4 py-2 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none ${
-                  formErrors.roomId ? 'border-2 border-red-500' : ''
+                  formErrors.roomId ? "border-2 border-red-500" : ""
                 }`}
                 placeholder="Enter Room ID"
               />
@@ -106,8 +117,8 @@ const LandingPage = () => {
           </div>
 
           <div>
-            <label 
-              htmlFor="username" 
+            <label
+              htmlFor="username"
               className="block text-sm font-medium text-gray-300 mb-2"
             >
               Username
@@ -123,7 +134,7 @@ const LandingPage = () => {
                 }
               }}
               className={`w-full px-4 py-2 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none ${
-                  formErrors.username ? 'border-2 border-red-500' : ''
+                formErrors.username ? "border-2 border-red-500" : ""
               }`}
               placeholder="Enter your username"
             />
@@ -144,14 +155,19 @@ const LandingPage = () => {
         <p className="mt-4 text-sm text-gray-400 text-center">
           Enter a Room ID or generate a new one to create a room
           <button
-                type="button"
-                onClick={generateNewUUID}
-                className="text-xs text-blue-400 hover:text-blue-300"
-              >
-                Generate UUID
-              </button>
+            type="button"
+            onClick={generateNewUUID}
+            className="text-xs text-blue-400 hover:text-blue-300"
+          >
+            Generate UUID
+          </button>
         </p>
       </div>
+      {!localStorage.getItem("InfoModalShown") ? (
+        <InfoModal onClose={onClose} />
+      ) : (
+        <></>
+      )}
     </div>
   );
 };
